@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson 3 - Paying Bills</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+
+        .petal {
+            border-radius: 60% 40% 50% 50% / 70% 50% 50% 30%;
+            opacity: 0.5;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+        }
+        .float-anim { animation: float 5s ease-in-out infinite; }
+
+        @keyframes confused {
+            0%, 100% { transform: rotate(-8deg); }
+            50% { transform: rotate(8deg); }
+        }
+        .confused-anim { animation: confused 1.5s ease-in-out infinite; }
+
+        @keyframes pulse-dot {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.6; }
+        }
+        .pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+
+        .phone-mockup {
+            background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 2.5rem;
+            box-shadow: 
+                0 25px 60px -15px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(0, 0, 0, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+        }
+
+        .credit-card {
+            background: linear-gradient(135deg, #0891b2 0%, #0e7490 50%, #155e75 100%);
+            border-radius: 1rem;
+            box-shadow: 0 20px 40px -10px rgba(8, 145, 178, 0.4);
+        }
+
+        .teacher-cue {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.1) 100%);
+            border-left: 4px solid #f59e0b;
+        }
+        .dark .teacher-cue {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.05) 100%);
+        }
+    </style>
+</head>
+<body class="h-full overflow-x-hidden">
+<div class="isolate relative min-h-[100dvh] overflow-x-hidden overflow-y-auto bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-50">
+
+    <!-- Background blurs -->
+    <div class="pointer-events-none fixed inset-0 z-0">
+        <div class="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-sky-300/50 blur-3xl dark:bg-indigo-500/20"></div>
+        <div class="absolute -bottom-40 -right-32 h-[500px] w-[500px] rounded-full bg-blue-300/40 blur-3xl dark:bg-purple-500/15"></div>
+        <div class="absolute top-1/3 right-1/4 h-72 w-72 rounded-full bg-cyan-200/40 blur-3xl dark:bg-indigo-400/10"></div>
+    </div>
+
+    <!-- Decorative petals bottom-left -->
+    <div class="pointer-events-none absolute bottom-0 left-0 w-[200px] h-[200px] sm:w-[280px] sm:h-[280px]">
+        <div class="petal bg-indigo-400 dark:bg-purple-500 w-[80px] h-[130px] sm:w-[110px] sm:h-[170px] absolute bottom-0 left-[30px] rotate-[-15deg] origin-bottom-right"></div>
+        <div class="petal bg-indigo-500 dark:bg-purple-600 w-[70px] h-[120px] sm:w-[100px] sm:h-[160px] absolute bottom-0 left-[5px] rotate-[-40deg] origin-bottom-right"></div>
+        <div class="petal bg-indigo-300 dark:bg-purple-400 w-[75px] h-[125px] sm:w-[105px] sm:h-[165px] absolute bottom-0 left-[55px] rotate-[10deg] origin-bottom-right"></div>
+    </div>
+
+    <div class="relative z-10">
+        <div class="mx-auto flex min-h-[100dvh] w-full max-w-[1100px] items-center px-5 py-6 sm:px-8">
+            <div class="grid w-full grid-cols-1 items-center gap-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-10">
+
+                <!-- LEFT SIDE: Content -->
+                <div class="text-content z-10 flex flex-col">
+
+                    <!-- Level badges -->
+                    <div class="meta-badges mb-4 flex flex-wrap items-center gap-2 opacity-0">
+                        <span class="rounded-full border border-sky-400/50 bg-white/60 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-sky-700 dark:border-white/20 dark:bg-white/10 dark:text-white/90">
+                            A1. Beginner
+                        </span>
+                        <span class="rounded-full border border-sky-400/50 bg-white/60 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-sky-700 dark:border-white/20 dark:bg-white/10 dark:text-white/90">
+                            Unit.4
+                        </span>
+                        <span class="rounded-full border border-amber-400/50 bg-amber-50/80 px-4 py-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/15 dark:text-amber-300">
+                            Home and Daily Needs
+                        </span>
+                    </div>
+
+                    <!-- Main Title -->
+                    <div class="title-block mb-5 opacity-0">
+                        <p class="mb-1 text-sm font-bold uppercase tracking-[0.25em] text-sky-600 dark:text-indigo-300/80">Lesson.3</p>
+                        <h1 class="text-5xl sm:text-6xl lg:text-7xl font-black leading-[1] tracking-tight text-slate-800 dark:text-white">
+                            Paying Bills
+                        </h1>
+                    </div>
+
+                    <!-- Idiom Section with Stickman -->
+                    <div class="idiom-section flex items-start gap-4 mb-6 opacity-0">
+                        <div class="idiom-box rounded-2xl border-2 border-sky-400/40 bg-white/50 px-5 py-4 dark:border-white/15 dark:bg-white/5 dark:backdrop-blur-sm">
+                            <p class="text-xl sm:text-2xl font-black leading-tight tracking-tight text-slate-700 dark:text-amber-300">
+                                "CUT YOUR COAT<br>ACCORDING TO<br>YOUR CLOTH"
+                            </p>
+                        </div>
+
+                        <!-- Confused Stickman with notification -->
+                        <div class="stickman-wrapper flex flex-col items-center gap-2">
+                            <div class="relative">
+                                <div class="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-purple-500 text-[10px] font-black text-white shadow-lg dark:bg-purple-400">
+                                    2
+                                    <span class="absolute inset-0 rounded-full bg-purple-500 dark:bg-purple-400 pulse-dot"></span>
+                                </div>
+                            </div>
+                            <div class="confused-anim">
+                                <svg width="65" height="85" viewBox="0 0 65 85" fill="none">
+                                    <circle cx="32" cy="14" r="11" class="fill-sky-400 dark:fill-sky-300"/>
+                                    <circle cx="28" cy="12" r="2" class="fill-white"/>
+                                    <circle cx="36" cy="12" r="2" class="fill-white"/>
+                                    <path d="M27 19 Q32 16 37 19" stroke-width="1.5" fill="none" stroke-linecap="round" class="stroke-white"/>
+                                    <line x1="32" y1="25" x2="32" y2="50" stroke-width="3" stroke-linecap="round" class="stroke-sky-400 dark:stroke-sky-300"/>
+                                    <path d="M32 34 L14 26" stroke-width="3" stroke-linecap="round" class="stroke-sky-400 dark:stroke-sky-300"/>
+                                    <path d="M32 34 L50 26" stroke-width="3" stroke-linecap="round" class="stroke-sky-400 dark:stroke-sky-300"/>
+                                    <path d="M11 24 L14 26 L12 29" stroke-width="2.5" stroke-linecap="round" fill="none" class="stroke-sky-400 dark:stroke-sky-300"/>
+                                    <path d="M53 24 L50 26 L52 29" stroke-width="2.5" stroke-linecap="round" fill="none" class="stroke-sky-400 dark:stroke-sky-300"/>
+                                    <line x1="32" y1="50" x2="20" y2="75" stroke-width="3" stroke-linecap="round" class="stroke-sky-400 dark:stroke-sky-300"/>
+                                    <line x1="32" y1="50" x2="44" y2="75" stroke-width="3" stroke-linecap="round" class="stroke-sky-400 dark:stroke-sky-300"/>
+                                    <text x="48" y="10" font-size="14" font-weight="bold" class="fill-sky-500 dark:fill-sky-200">?</text>
+                                    <text x="8" y="12" font-size="11" font-weight="bold" class="fill-sky-500 dark:fill-sky-200">?</text>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT SIDE: Phone + Credit Card -->
+                <div class="visual-section relative flex items-center justify-center opacity-0">
+                    <div class="relative float-anim">
+
+                        <div class="phone-mockup relative w-[200px] sm:w-[240px] lg:w-[260px] p-4 sm:p-5">
+                            <div class="mb-4 flex justify-center">
+                                <div class="flex h-11 w-11 items-center justify-center rounded-full bg-blue-600 shadow-lg shadow-blue-600/30">
+                                    <span class="text-xl font-black text-white italic">P</span>
+                                </div>
+                            </div>
+                            <p class="mb-3 text-center text-lg font-extrabold text-slate-800">Pay</p>
+
+                            <!-- Tab bar -->
+                            <div class="mb-3 flex gap-1 rounded-xl bg-slate-100 p-1">
+                                <div class="flex-1 rounded-lg bg-blue-600 py-1.5 text-center text-[9px] font-bold text-white">Cost</div>
+                                <div class="flex-1 rounded-lg py-1.5 text-center text-[9px] font-bold text-slate-400">Amat</div>
+                                <div class="flex-1 rounded-lg py-1.5 text-center text-[9px] font-bold text-slate-400">Count</div>
+                            </div>
+
+                            <!-- Amount field -->
+                            <div class="mb-4 rounded-xl bg-slate-100 px-3 py-2.5">
+                                <p class="font-mono text-xs font-bold tracking-wider text-slate-500">1237 3627 2636</p>
+                            </div>
+
+                            <!-- Pay button -->
+                            <button class="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-blue-500/25">
+                                Pay
+                            </button>
+                        </div>
+
+                        <!-- Credit card (overlapping) -->
+                        <div class="credit-card absolute -bottom-6 -right-4 sm:-right-8 lg:-right-12 w-[140px] sm:w-[160px] lg:w-[180px] p-3 sm:p-4 text-white rotate-[12deg]">
+                            <p class="mb-0.5 text-[7px] sm:text-[8px] font-bold uppercase tracking-widest opacity-80">Credit Card</p>
+                            <p class="mb-2 font-mono text-[9px] sm:text-[10px] font-bold tracking-wider">3218 56 78-9012 3454</p>
+                            <div class="flex items-center justify-between">
+                                <p class="font-mono text-[7px] sm:text-[8px] tracking-wider opacity-70">08/26 · 118</p>
+                                <div class="flex -space-x-1">
+                                    <div class="h-3.5 w-3.5 rounded-full bg-red-500 opacity-90"></div>
+                                    <div class="h-3.5 w-3.5 rounded-full bg-amber-400 opacity-90"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notification icons -->
+                        <div class="notif-icon absolute -top-2 right-6 sm:right-10 flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-600 shadow-lg dark:bg-slate-600 dark:text-white opacity-0">
+                            N
+                            <span class="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-red-500 pulse-dot"></span>
+                        </div>
+                        <div class="notif-icon absolute top-10 right-0 sm:right-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-300 text-[9px] font-bold text-slate-600 shadow-lg dark:bg-slate-500 dark:text-white opacity-0">
+                            N
+                            <span class="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 pulse-dot"></span>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Theme sync - compatible with reader.html
+    (function() {
+        let useDark = false;
+        try { 
+            if (window.parent && window.parent !== window) {
+                useDark = window.parent.document.documentElement.classList.contains('dark'); 
+            }
+        } catch (e) {}
+        if (!useDark) { 
+            const s = localStorage.getItem('editor-theme-preference'); 
+            const p = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; 
+            useDark = s ? s === 'dark' : p; 
+        }
+        document.documentElement.classList.toggle('dark', useDark);
+        document.body.classList.toggle('dark', useDark);
+    })();
+    window.setTheme = function(t) { 
+        document.documentElement.classList.toggle('dark', t === 'dark'); 
+        document.body.classList.toggle('dark', t === 'dark');
+    };
+
+    // Entrance animations
+    document.addEventListener('DOMContentLoaded', () => {
+        gsap.set('.meta-badges', { opacity: 0, y: -20 });
+        gsap.set('.title-block', { opacity: 0, y: 30 });
+        gsap.set('.idiom-section', { opacity: 0, x: -30 });
+        gsap.set('.teacher-cue-block', { opacity: 0, y: 20 });
+        gsap.set('.visual-section', { opacity: 0, scale: 0.9 });
+        gsap.set('.notif-icon', { opacity: 0, scale: 0, y: -10 });
+
+        const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+        tl.to('.meta-badges', { opacity: 1, y: 0, duration: 0.6 })
+          .to('.title-block', { opacity: 1, y: 0, duration: 0.7 }, '-=0.3')
+          .to('.idiom-section', { opacity: 1, x: 0, duration: 0.6, ease: 'back.out(1.2)' }, '-=0.35')
+          .to('.teacher-cue-block', { opacity: 1, y: 0, duration: 0.5 }, '-=0.25')
+          .to('.visual-section', { opacity: 1, scale: 1, duration: 0.8, ease: 'expo.out' }, '-=0.4')
+          .to('.notif-icon', { opacity: 1, scale: 1, y: 0, duration: 0.4, stagger: 0.12, ease: 'back.out(2)' }, '-=0.3');
+    });
+
+    window.stopSlideAudio = function() {
+        if (window.speechSynthesis && window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
+    };
+</script>
+</body>
+</html>

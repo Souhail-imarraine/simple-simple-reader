@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Revision - Listening</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
+                }
+            }
+        };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+
+        @keyframes wave {
+            0%, 100% { height: 4px; }
+            50% { height: 20px; }
+        }
+        .wave-bar { animation: wave 0.6s ease-in-out infinite; animation-play-state: paused; }
+        .wave-bar.active { animation-play-state: running; }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 0.6; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        .pulse-ring { animation: pulse-ring 1.5s ease-out infinite; }
+
+        .track-btn { transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+        .track-btn:hover { transform: translateY(-2px); }
+        .track-btn.current {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 8px 24px -8px rgba(14,165,233,0.4);
+        }
+        .dark .track-btn.current {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            box-shadow: 0 8px 24px -8px rgba(99,102,241,0.4);
+        }
+        .track-btn.done { border-color: #10b981; color: #10b981; }
+
+        .subtitle-line {
+            animation: fadeUp 0.35s ease forwards;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .check-cell { transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1); cursor: pointer; }
+        .check-cell:hover { transform: scale(1.1); }
+        .check-cell.selected { background: #0ea5e9; border-color: #0ea5e9; color: white; }
+        .dark .check-cell.selected { background: #6366f1; border-color: #6366f1; }
+        .check-cell.selected svg { opacity: 1; }
+        .check-cell.correct { background: #10b981 !important; border-color: #10b981 !important; color: white !important; }
+        .check-cell.correct svg { opacity: 1; }
+        .check-cell.incorrect { background: #ef4444 !important; border-color: #ef4444 !important; color: white !important; }
+
+        @keyframes pop { 0%{transform:scale(.8)} 50%{transform:scale(1.15)} 100%{transform:scale(1)} }
+        .pop { animation: pop 0.3s ease; }
+
+        .quiz-row.row-correct { border-color: rgba(16,185,129,0.4); background: rgba(16,185,129,0.08); }
+        .quiz-row.row-incorrect { border-color: rgba(239,68,68,0.4); background: rgba(239,68,68,0.08); }
+    </style>
+</head>
+<body class="h-full overflow-x-hidden">
+<div class="isolate relative min-h-[100dvh] overflow-x-hidden overflow-y-auto bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-50">
+
+    <div class="pointer-events-none fixed inset-0 z-0">
+        <div class="absolute -top-28 -left-28 h-80 w-80 rounded-full bg-sky-300/50 blur-3xl dark:bg-indigo-500/20"></div>
+        <div class="absolute -bottom-36 -right-28 h-96 w-96 rounded-full bg-blue-300/40 blur-3xl dark:bg-purple-500/15"></div>
+        <div class="absolute top-1/2 left-1/3 h-64 w-64 rounded-full bg-cyan-200/40 blur-3xl dark:bg-blue-500/10"></div>
+    </div>
+
+    <div class="relative z-10">
+        <div class="mx-auto flex min-h-[100dvh] w-full max-w-[900px] flex-col items-center justify-center px-4 py-6 sm:px-6">
+
+        <!-- ========== LISTENING VIEW ========== -->
+        <div id="listening-view" class="w-full">
+
+            <!-- Header -->
+            <div class="header-area mb-6 text-center opacity-0">
+                <span class="inline-flex items-center gap-2 rounded-full border border-amber-400/50 bg-amber-50/80 px-5 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    Quick Revision
+                </span>
+                <h1 class="mt-4 text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl text-slate-800 dark:text-white">
+                    First let's do a <span class="bg-gradient-to-r from-sky-500 to-blue-500 dark:from-amber-300 dark:to-orange-400 bg-clip-text text-transparent">quick revision!</span>
+                </h1>
+                <p class="mx-auto mt-2 max-w-md text-sm font-medium text-slate-500 dark:text-slate-300/70">Listen to each conversation, then test your comprehension.</p>
+            </div>
+
+            <!-- Track Navigation -->
+            <div class="tracks-area mb-5 flex flex-wrap items-center justify-center gap-2 opacity-0">
+                <button class="track-btn current flex items-center gap-2 rounded-xl border-2 border-sky-300/50 bg-white/70 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider dark:border-white/10 dark:bg-white/5" data-track="0" onclick="goToTrack(0)">
+                    <span class="flex h-5 w-5 items-center justify-center rounded-md bg-white/30 text-[10px]">1</span>
+                    Kitchen
+                </button>
+                <button class="track-btn flex items-center gap-2 rounded-xl border-2 border-sky-300/50 bg-white/70 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400" data-track="1" onclick="goToTrack(1)">
+                    <span class="flex h-5 w-5 items-center justify-center rounded-md bg-slate-100 text-[10px] dark:bg-white/10">2</span>
+                    Bedroom
+                </button>
+                <button class="track-btn flex items-center gap-2 rounded-xl border-2 border-sky-300/50 bg-white/70 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400" data-track="2" onclick="goToTrack(2)">
+                    <span class="flex h-5 w-5 items-center justify-center rounded-md bg-slate-100 text-[10px] dark:bg-white/10">3</span>
+                    Living Room
+                </button>
+                <button class="track-btn flex items-center gap-2 rounded-xl border-2 border-sky-300/50 bg-white/70 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:border-white/10 dark:bg-white/5 dark:text-slate-400" data-track="3" onclick="goToTrack(3)">
+                    <span class="flex h-5 w-5 items-center justify-center rounded-md bg-slate-100 text-[10px] dark:bg-white/10">4</span>
+                    Bathroom
+                </button>
+            </div>
+
+            <!-- Player Card -->
+            <div class="player-card mb-5 w-full opacity-0">
+                <div class="rounded-2xl border border-sky-300/40 bg-white/70 p-5 shadow-xl backdrop-blur-sm dark:border-white/10 dark:bg-white/5 sm:p-6">
+
+                    <!-- Track title -->
+                    <div class="mb-4 flex items-center justify-between">
+                        <div>
+                            <p id="track-label" class="text-[10px] font-black uppercase tracking-[0.25em] text-sky-600 dark:text-indigo-400">Dialogue 1</p>
+                            <h3 id="track-title" class="text-lg font-black tracking-tight text-slate-800 dark:text-white sm:text-xl">Kitchen</h3>
+                        </div>
+                        <div id="track-status" class="flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-400 dark:bg-white/10">
+                            <span class="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-500"></span>
+                            Ready
+                        </div>
+                    </div>
+
+                    <!-- Play controls -->
+                    <div class="flex items-center gap-4">
+                        <button id="play-btn" onclick="togglePlay()" class="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-500/30 transition-all hover:scale-105 active:scale-95 dark:from-indigo-500 dark:to-purple-600 dark:shadow-indigo-500/30">
+                            <span class="absolute inset-0 rounded-2xl bg-sky-400/50 dark:bg-indigo-400/50 pulse-ring"></span>
+                            <svg id="icon-play" class="relative w-6 h-6 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            <svg id="icon-stop" class="relative hidden w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                        </button>
+
+                        <!-- Waveform -->
+                        <div class="flex flex-1 items-end justify-center gap-[3px] h-8">
+                            <div class="wave-bar w-[3px] rounded-full bg-sky-400/60 dark:bg-indigo-400/50" style="height:4px;animation-delay:0s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-sky-500/60 dark:bg-indigo-300/50" style="height:4px;animation-delay:.1s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-blue-400/60 dark:bg-purple-400/50" style="height:4px;animation-delay:.2s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-sky-400/60 dark:bg-indigo-400/50" style="height:4px;animation-delay:.08s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-blue-500/60 dark:bg-purple-300/50" style="height:4px;animation-delay:.28s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-sky-400/60 dark:bg-indigo-400/50" style="height:4px;animation-delay:.14s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-blue-400/60 dark:bg-purple-400/50" style="height:4px;animation-delay:.22s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-sky-500/60 dark:bg-indigo-300/50" style="height:4px;animation-delay:.05s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-blue-400/60 dark:bg-purple-400/50" style="height:4px;animation-delay:.18s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-sky-400/60 dark:bg-indigo-400/50" style="height:4px;animation-delay:.12s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-blue-500/60 dark:bg-purple-300/50" style="height:4px;animation-delay:.25s"></div>
+                            <div class="wave-bar w-[3px] rounded-full bg-sky-400/60 dark:bg-indigo-400/50" style="height:4px;animation-delay:.07s"></div>
+                        </div>
+
+                        <!-- Replay -->
+                        <button id="replay-btn" onclick="replayTrack()" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sky-300/50 bg-white/80 text-slate-400 transition-all hover:text-sky-600 hover:border-sky-400 active:scale-90 dark:border-white/10 dark:bg-white/5 dark:hover:text-indigo-300">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Subtitle Area -->
+            <div class="subtitle-card w-full opacity-0">
+                <div class="min-h-[140px] rounded-2xl border border-sky-300/40 bg-white/70 p-5 shadow-xl backdrop-blur-sm dark:border-white/10 dark:bg-white/5 sm:p-6">
+                    <div class="mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/></svg>
+                        <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-slate-500">Live Subtitles</p>
+                    </div>
+                    <div id="subtitles" class="space-y-2">
+                        <p class="text-sm text-slate-400 dark:text-slate-500 italic">Press play to start listening...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="nav-area mt-5 flex w-full items-center justify-between opacity-0">
+                <button id="prev-track-btn" onclick="prevTrack()" class="flex items-center gap-2 rounded-xl border border-sky-300/50 bg-white/70 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 transition-all hover:border-sky-400 hover:text-sky-600 active:scale-95 disabled:opacity-30 disabled:pointer-events-none dark:border-white/10 dark:bg-white/5 dark:text-slate-400" disabled>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                    Previous
+                </button>
+                <span id="track-counter" class="text-[11px] font-black tracking-wider text-slate-400 dark:text-slate-500">1 / 4</span>
+                <button id="next-track-btn" onclick="nextTrack()" class="flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-sky-500/25 transition-all hover:-translate-y-0.5 active:scale-95 dark:from-indigo-500 dark:to-purple-600 dark:shadow-indigo-500/25">
+                    Next
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+
+        </div>
+        <!-- end listening-view -->
+
+        <!-- ========== QUIZ VIEW ========== -->
+        <div id="quiz-view" class="w-full max-w-[850px] mx-auto hidden">
+
+            <!-- Quiz Header -->
+            <div class="quiz-header mb-6 text-center opacity-0">
+                <span class="inline-flex items-center gap-2 rounded-full border border-sky-400/50 bg-white/70 px-5 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-sky-700 dark:border-indigo-400/30 dark:bg-indigo-400/10 dark:text-indigo-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    Comprehension Check
+                </span>
+                <h1 class="mt-4 text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl text-slate-800 dark:text-white">
+                    True or <span class="bg-gradient-to-r from-rose-500 to-pink-500 bg-clip-text text-transparent">False?</span>
+                </h1>
+                <p class="mx-auto mt-2 max-w-md text-sm font-medium text-slate-500 dark:text-slate-300/70">Based on what you heard, decide if each statement is true or false.</p>
+            </div>
+
+            <!-- Quiz Card -->
+            <div class="quiz-card w-full opacity-0">
+                <div class="rounded-2xl border border-sky-300/40 bg-white/70 p-5 shadow-xl backdrop-blur-sm dark:border-white/10 dark:bg-white/5 sm:p-8">
+
+                    <div class="mb-4 flex items-center justify-end gap-4 pr-1">
+                        <span class="w-12 text-center text-[11px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">True</span>
+                        <span class="w-12 text-center text-[11px] font-black uppercase tracking-widest text-rose-500 dark:text-rose-400">False</span>
+                    </div>
+
+                    <div class="space-y-3" id="quiz-table">
+                        <div class="quiz-row flex items-center justify-between gap-4 rounded-xl border border-sky-200/60 bg-white/50 px-4 py-4 sm:px-5 dark:border-white/5 dark:bg-white/[0.03]" data-answer="false">
+                            <div class="flex items-start gap-3">
+                                <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-xs font-black text-sky-700 dark:bg-indigo-500/20 dark:text-indigo-300">1</span>
+                                <p class="text-sm font-semibold leading-snug text-slate-700 dark:text-white sm:text-[15px]">She doesn't plan to buy anything else for the apartment.</p>
+                            </div>
+                            <div class="flex shrink-0 gap-4">
+                                <button class="check-cell flex h-10 w-10 items-center justify-center rounded-xl border-2 border-sky-200 bg-white text-slate-300 dark:border-white/15 dark:bg-white/5 sm:h-11 sm:w-11" data-value="true" onclick="selectAnswer(this)"><svg class="w-5 h-5 opacity-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></button>
+                                <button class="check-cell flex h-10 w-10 items-center justify-center rounded-xl border-2 border-sky-200 bg-white text-slate-300 dark:border-white/15 dark:bg-white/5 sm:h-11 sm:w-11" data-value="false" onclick="selectAnswer(this)"><svg class="w-5 h-5 opacity-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="quiz-row flex items-center justify-between gap-4 rounded-xl border border-sky-200/60 bg-white/50 px-4 py-4 sm:px-5 dark:border-white/5 dark:bg-white/[0.03]" data-answer="false">
+                            <div class="flex items-start gap-3">
+                                <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-xs font-black text-sky-700 dark:bg-indigo-500/20 dark:text-indigo-300">2</span>
+                                <p class="text-sm font-semibold leading-snug text-slate-700 dark:text-white sm:text-[15px]">He has a new bed.</p>
+                            </div>
+                            <div class="flex shrink-0 gap-4">
+                                <button class="check-cell flex h-10 w-10 items-center justify-center rounded-xl border-2 border-sky-200 bg-white text-slate-300 dark:border-white/15 dark:bg-white/5 sm:h-11 sm:w-11" data-value="true" onclick="selectAnswer(this)"><svg class="w-5 h-5 opacity-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></button>
+                                <button class="check-cell flex h-10 w-10 items-center justify-center rounded-xl border-2 border-sky-200 bg-white text-slate-300 dark:border-white/15 dark:bg-white/5 sm:h-11 sm:w-11" data-value="false" onclick="selectAnswer(this)"><svg class="w-5 h-5 opacity-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="quiz-row flex items-center justify-between gap-4 rounded-xl border border-sky-200/60 bg-white/50 px-4 py-4 sm:px-5 dark:border-white/5 dark:bg-white/[0.03]" data-answer="true">
+                            <div class="flex items-start gap-3">
+                                <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-xs font-black text-sky-700 dark:bg-indigo-500/20 dark:text-indigo-300">3</span>
+                                <p class="text-sm font-semibold leading-snug text-slate-700 dark:text-white sm:text-[15px]">She wants to buy some more furniture.</p>
+                            </div>
+                            <div class="flex shrink-0 gap-4">
+                                <button class="check-cell flex h-10 w-10 items-center justify-center rounded-xl border-2 border-sky-200 bg-white text-slate-300 dark:border-white/15 dark:bg-white/5 sm:h-11 sm:w-11" data-value="true" onclick="selectAnswer(this)"><svg class="w-5 h-5 opacity-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></button>
+                                <button class="check-cell flex h-10 w-10 items-center justify-center rounded-xl border-2 border-sky-200 bg-white text-slate-300 dark:border-white/15 dark:bg-white/5 sm:h-11 sm:w-11" data-value="false" onclick="selectAnswer(this)"><svg class="w-5 h-5 opacity-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></button>
+                            </div>
+                        </div>
+                        <div class="quiz-row flex items-center justify-between gap-4 rounded-xl border border-sky-200/60 bg-white/50 px-4 py-4 sm:px-5 dark:border-white/5 dark:bg-white/[0.03]" data-answer="true">
+                            <div class="flex items-start gap-3">
+                                <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-100 text-xs font-black text-sky-700 dark:bg-indigo-500/20 dark:text-indigo-300">4</span>
+                                <p class="text-sm font-semibold leading-snug text-slate-700 dark:text-white sm:text-[15px]">She'll probably take a bath at her friend's place.</p>
+                            </div>
+                            <div class="flex shrink-0 gap-4">
+                                <button class="check-cell flex h-10 w-10 items-center justify-center rounded-xl border-2 border-sky-200 bg-white text-slate-300 dark:border-white/15 dark:bg-white/5 sm:h-11 sm:w-11" data-value="true" onclick="selectAnswer(this)"><svg class="w-5 h-5 opacity-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></button>
+                                <button class="check-cell flex h-10 w-10 items-center justify-center rounded-xl border-2 border-sky-200 bg-white text-slate-300 dark:border-white/15 dark:bg-white/5 sm:h-11 sm:w-11" data-value="false" onclick="selectAnswer(this)"><svg class="w-5 h-5 opacity-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+                        <button id="check-btn" onclick="checkAnswers()" class="flex-1 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 px-6 py-3.5 text-sm font-extrabold uppercase tracking-wider text-white shadow-lg shadow-sky-500/25 transition-all hover:-translate-y-0.5 active:translate-y-0 dark:from-indigo-500 dark:to-purple-600 dark:shadow-indigo-500/25">Check My Answers</button>
+                        <button id="reset-btn" onclick="resetQuiz()" class="hidden flex-1 rounded-xl border-2 border-sky-300/50 bg-white/70 px-6 py-3.5 text-sm font-extrabold uppercase tracking-wider text-slate-600 transition-all hover:bg-white active:scale-[0.98] dark:border-white/10 dark:bg-white/5 dark:text-white">Try Again</button>
+                    </div>
+
+                    <div id="result-bar" class="mt-5 hidden rounded-xl px-5 py-4 text-center"></div>
+                </div>
+            </div>
+
+            <!-- Back to listening -->
+            <button onclick="backToListening()" class="mt-5 flex items-center gap-2 rounded-xl border border-sky-300/50 bg-white/70 px-4 py-2.5 text-xs font-extrabold uppercase tracking-wider text-slate-500 transition-all hover:border-sky-400 hover:text-sky-600 active:scale-95 dark:border-white/10 dark:bg-white/5 dark:text-slate-400 opacity-0 quiz-back-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                Back to Listening
+            </button>
+        </div>
+        <!-- end quiz-view -->
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // Theme sync - compatible with reader.html
+    (function() {
+        let useDark = false;
+        try { 
+            if (window.parent && window.parent !== window) {
+                useDark = window.parent.document.documentElement.classList.contains('dark'); 
+            }
+        } catch (e) {}
+        if (!useDark) { 
+            const s = localStorage.getItem('editor-theme-preference'); 
+            const p = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; 
+            useDark = s ? s === 'dark' : p; 
+        }
+        document.documentElement.classList.toggle('dark', useDark);
+        document.body.classList.toggle('dark', useDark);
+    })();
+    window.setTheme = function(t) { 
+        document.documentElement.classList.toggle('dark', t === 'dark'); 
+        document.body.classList.toggle('dark', t === 'dark');
+    };
+
+    const tracks = [
+        {
+            label: "Dialogue 1", title: "Kitchen",
+            lines: [
+                { speaker: "A", text: "Does the kitchen have everything you need, like a stove and a refrigerator?" },
+                { speaker: "B", text: "There's a stove, but not a refrigerator. I need to buy one." }
+            ]
+        },
+        {
+            label: "Dialogue 2", title: "Bedroom",
+            lines: [
+                { speaker: "A", text: "You don't have a bed in your bedroom?" },
+                { speaker: "B", text: "Well, I have a TV. But for now, I only have a mattress on the floor." },
+                { speaker: "A", text: "Really?" }
+            ]
+        },
+        {
+            label: "Dialogue 3", title: "Living Room",
+            lines: [
+                { speaker: "A", text: "We don't have much furniture yet. We don't even have a sofa in the living room." },
+                { speaker: "B", text: "Hey. I've got one I can sell you." },
+                { speaker: "A", text: "Really? Great." }
+            ]
+        },
+        {
+            label: "Dialogue 4", title: "Bathroom",
+            lines: [
+                { speaker: "A", text: "The bathroom is very small. There's just a shower and a toilet." },
+                { speaker: "B", text: "You can come and take a bath at my place any time." },
+                { speaker: "A", text: "Thanks, I probably will." }
+            ]
+        }
+    ];
+
+    let currentTrack = 0;
+    let playing = false;
+    let aborted = false;
+    let completedTracks = new Set();
+
+    let voiceFemale = null;
+    let voiceMale = null;
+
+    function loadVoices() {
+        const voices = window.speechSynthesis.getVoices();
+        if (!voices.length) return;
+        
+        const enVoices = voices.filter(v => v.lang.startsWith('en'));
+        
+        // Female voice preferences
+        const femalePrefs = ['Samantha', 'Google US English', 'Microsoft Zira', 'Karen', 'Victoria', 'Fiona'];
+        for (const pref of femalePrefs) {
+            const found = enVoices.find(v => v.name.includes(pref));
+            if (found) { voiceFemale = found; break; }
+        }
+        if (!voiceFemale) {
+            voiceFemale = enVoices.find(v => /female|woman/i.test(v.name)) || enVoices[0];
+        }
+        
+        // Male voice preferences
+        const malePrefs = ['Daniel', 'Google UK English Male', 'Microsoft David', 'Alex', 'Tom', 'James'];
+        for (const pref of malePrefs) {
+            const found = enVoices.find(v => v.name.includes(pref));
+            if (found) { voiceMale = found; break; }
+        }
+        if (!voiceMale) {
+            voiceMale = enVoices.find(v => /\bmale\b|man/i.test(v.name)) || enVoices[1] || enVoices[0];
+        }
+        
+        // Make sure they are different
+        if (voiceFemale && voiceMale && voiceFemale.name === voiceMale.name && enVoices.length > 1) {
+            voiceMale = enVoices.find(v => v.name !== voiceFemale.name) || voiceMale;
+        }
+    }
+
+    function speakText(text, speaker) {
+        return new Promise(resolve => {
+            if (!('speechSynthesis' in window)) { resolve(); return; }
+            
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.rate = 0.9;
+            
+            // Speaker A = Female, Speaker B = Male
+            if (speaker === 'A') {
+                utter.voice = voiceFemale;
+                utter.pitch = 1.1;
+            } else {
+                utter.voice = voiceMale;
+                utter.pitch = 0.9;
+            }
+            
+            utter.onend = () => resolve();
+            utter.onerror = () => resolve();
+            window.speechSynthesis.speak(utter);
+        });
+    }
+
+    function wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function updateTrackUI() {
+        const track = tracks[currentTrack];
+        document.getElementById('track-label').textContent = track.label;
+        document.getElementById('track-title').textContent = track.title;
+        document.getElementById('track-counter').textContent = `${currentTrack + 1} / ${tracks.length}`;
+        document.getElementById('prev-track-btn').disabled = currentTrack === 0;
+
+        const nextBtn = document.getElementById('next-track-btn');
+        const allDone = completedTracks.size === tracks.length;
+
+        if (allDone) {
+            nextBtn.innerHTML = `Quiz <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>`;
+            nextBtn.onclick = () => showQuizView();
+        } else if (currentTrack === tracks.length - 1) {
+            nextBtn.innerHTML = `Done <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>`;
+            nextBtn.onclick = () => nextTrack();
+        } else {
+            nextBtn.innerHTML = `Next <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>`;
+            nextBtn.onclick = () => nextTrack();
+        }
+
+        document.querySelectorAll('.track-btn').forEach((btn, i) => {
+            btn.classList.remove('current', 'done');
+            const numEl = btn.querySelector('span');
+            if (i === currentTrack) {
+                btn.classList.add('current');
+                numEl.className = 'flex h-5 w-5 items-center justify-center rounded-md bg-white/30 text-[10px]';
+            } else if (completedTracks.has(i)) {
+                btn.classList.add('done');
+                numEl.className = 'flex h-5 w-5 items-center justify-center rounded-md bg-emerald-100 text-[10px] text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300';
+                numEl.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+            } else {
+                numEl.className = 'flex h-5 w-5 items-center justify-center rounded-md bg-slate-100 text-[10px] dark:bg-white/10';
+                numEl.textContent = i + 1;
+            }
+        });
+
+        setStatus('ready');
+        clearSubtitles();
+    }
+
+    function setStatus(state) {
+        const el = document.getElementById('track-status');
+        const dot = el.querySelector('span');
+        if (state === 'playing') {
+            el.className = 'flex items-center gap-1.5 rounded-full bg-sky-100 px-3 py-1 text-[10px] font-bold text-sky-700 dark:bg-indigo-500/15 dark:text-indigo-300';
+            dot.className = 'h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse dark:bg-indigo-400';
+            el.lastChild.textContent = ' Playing';
+        } else if (state === 'done') {
+            el.className = 'flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-bold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300';
+            dot.className = 'h-1.5 w-1.5 rounded-full bg-emerald-500';
+            el.lastChild.textContent = ' Complete';
+        } else {
+            el.className = 'flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-400 dark:bg-white/10';
+            dot.className = 'h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-500';
+            el.lastChild.textContent = ' Ready';
+        }
+    }
+
+    function clearSubtitles() {
+        document.getElementById('subtitles').innerHTML = '<p class="text-sm text-slate-400 dark:text-slate-500 italic">Press play to start listening...</p>';
+    }
+
+    function addSubtitle(speaker, text) {
+        const container = document.getElementById('subtitles');
+        if (container.querySelector('p.italic')) container.innerHTML = '';
+
+        const div = document.createElement('div');
+        div.className = 'subtitle-line flex items-start gap-2.5';
+
+        const badge = speaker === 'A'
+            ? '<span class="mt-0.5 shrink-0 flex h-6 w-6 items-center justify-center rounded-lg bg-sky-100 text-[10px] font-black text-sky-700 dark:bg-indigo-500/20 dark:text-indigo-300">A</span>'
+            : '<span class="mt-0.5 shrink-0 flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100 text-[10px] font-black text-blue-700 dark:bg-purple-500/20 dark:text-purple-300">B</span>';
+
+        div.innerHTML = `${badge}<p class="text-sm font-semibold leading-relaxed text-slate-700 dark:text-slate-200">${text}</p>`;
+        container.appendChild(div);
+        div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function setWaveActive(active) {
+        document.querySelectorAll('.wave-bar').forEach(b => b.classList.toggle('active', active));
+    }
+
+    async function togglePlay() {
+        if (playing) { stopAudio(); return; }
+        await playCurrentTrack();
+    }
+
+    async function playCurrentTrack() {
+        if ('speechSynthesis' in window) loadVoices();
+        
+        aborted = false;
+        playing = true;
+        setPlayIcon(true);
+        setWaveActive(true);
+        setStatus('playing');
+        clearSubtitles();
+
+        const track = tracks[currentTrack];
+
+        for (let i = 0; i < track.lines.length; i++) {
+            if (aborted) break;
+            const line = track.lines[i];
+            addSubtitle(line.speaker, line.text);
+            await speakText(line.text, line.speaker);
+            if (aborted) break;
+            if (i < track.lines.length - 1) await wait(400);
+        }
+
+        if (!aborted) {
+            completedTracks.add(currentTrack);
+            setStatus('done');
+            updateTrackUI();
+            setStatus('done');
+        }
+
+        playing = false;
+        setPlayIcon(false);
+        setWaveActive(false);
+    }
+
+    async function replayTrack() {
+        stopAudio();
+        await wait(100);
+        await playCurrentTrack();
+    }
+
+    function stopAudio() {
+        aborted = true;
+        playing = false;
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        setPlayIcon(false);
+        setWaveActive(false);
+    }
+
+    function setPlayIcon(isPlaying) {
+        document.getElementById('icon-play').classList.toggle('hidden', isPlaying);
+        document.getElementById('icon-stop').classList.toggle('hidden', !isPlaying);
+    }
+
+    function goToTrack(idx) {
+        if (idx === currentTrack && !playing) return;
+        stopAudio();
+        currentTrack = idx;
+        updateTrackUI();
+    }
+
+    function nextTrack() {
+        if (currentTrack < tracks.length - 1) goToTrack(currentTrack + 1);
+    }
+
+    function prevTrack() {
+        if (currentTrack > 0) goToTrack(currentTrack - 1);
+    }
+
+    function showQuizView() {
+        stopAudio();
+        const listening = document.getElementById('listening-view');
+        const quiz = document.getElementById('quiz-view');
+
+        gsap.to(listening, {
+            opacity: 0, y: -30, duration: 0.4, ease: 'power2.in',
+            onComplete: () => {
+                listening.classList.add('hidden');
+                quiz.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                animateQuizIn();
+            }
+        });
+    }
+
+    function animateQuizIn() {
+        gsap.set(['.quiz-header', '.quiz-card', '.quiz-back-btn'], { opacity: 0, y: 20 });
+        const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
+        tl.to('.quiz-header', { opacity: 1, y: 0, duration: 0.6 })
+          .to('.quiz-card', { opacity: 1, y: 0, duration: 0.6, ease: 'back.out(1.3)' }, '-=0.3')
+          .to('.quiz-back-btn', { opacity: 1, y: 0, duration: 0.4 }, '-=0.2');
+    }
+
+    function backToListening() {
+        const listening = document.getElementById('listening-view');
+        const quiz = document.getElementById('quiz-view');
+
+        gsap.to(quiz, {
+            opacity: 0, y: -30, duration: 0.4, ease: 'power2.in',
+            onComplete: () => {
+                quiz.classList.add('hidden');
+                listening.classList.remove('hidden');
+                gsap.set(listening, { opacity: 1, y: 0 });
+                gsap.set(['.header-area', '.tracks-area', '.player-card', '.subtitle-card', '.nav-area'], { opacity: 1, y: 0 });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
+    }
+
+    function selectAnswer(btn) {
+        const row = btn.closest('.quiz-row');
+        row.querySelectorAll('.check-cell').forEach(c => {
+            c.classList.remove('selected');
+            c.querySelector('svg').style.opacity = '0';
+        });
+        btn.classList.add('selected', 'pop');
+        btn.querySelector('svg').style.opacity = '1';
+        setTimeout(() => btn.classList.remove('pop'), 300);
+    }
+
+    function checkAnswers() {
+        const rows = document.querySelectorAll('.quiz-row');
+        let correct = 0;
+
+        rows.forEach(row => {
+            const answer = row.dataset.answer;
+            const selected = row.querySelector('.check-cell.selected');
+
+            row.classList.remove('row-correct', 'row-incorrect');
+            row.querySelectorAll('.check-cell').forEach(c => c.classList.remove('correct', 'incorrect'));
+
+            if (!selected) {
+                row.classList.add('row-incorrect');
+                return;
+            }
+
+            if (selected.dataset.value === answer) {
+                selected.classList.add('correct');
+                row.classList.add('row-correct');
+                correct++;
+            } else {
+                selected.classList.add('incorrect');
+                row.classList.add('row-incorrect');
+                const correctBtn = row.querySelector(`.check-cell[data-value="${answer}"]`);
+                if (correctBtn) {
+                    correctBtn.classList.add('correct');
+                    correctBtn.querySelector('svg').style.opacity = '1';
+                }
+            }
+        });
+
+        showResult(correct, rows.length);
+        document.getElementById('check-btn').classList.add('hidden');
+        document.getElementById('reset-btn').classList.remove('hidden');
+    }
+
+    function showResult(correct, total) {
+        const bar = document.getElementById('result-bar');
+        bar.classList.remove('hidden');
+        const pct = Math.round((correct / total) * 100);
+
+        if (pct === 100) {
+            bar.className = 'mt-5 rounded-xl px-5 py-4 text-center bg-emerald-50 border border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20';
+            bar.innerHTML = `<p class="text-sm font-black text-emerald-600 dark:text-emerald-300">Perfect! ${correct}/${total} correct</p>`;
+        } else if (pct >= 50) {
+            bar.className = 'mt-5 rounded-xl px-5 py-4 text-center bg-amber-50 border border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/20';
+            bar.innerHTML = `<p class="text-sm font-black text-amber-600 dark:text-amber-300">Good effort! ${correct}/${total} correct</p>`;
+        } else {
+            bar.className = 'mt-5 rounded-xl px-5 py-4 text-center bg-rose-50 border border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/20';
+            bar.innerHTML = `<p class="text-sm font-black text-rose-600 dark:text-rose-300">Keep trying! ${correct}/${total} correct</p>`;
+        }
+
+        gsap.from(bar, { scale: 0.9, opacity: 0, duration: 0.4, ease: 'back.out(1.5)' });
+    }
+
+    function resetQuiz() {
+        document.querySelectorAll('.quiz-row').forEach(row => {
+            row.classList.remove('row-correct', 'row-incorrect');
+            row.querySelectorAll('.check-cell').forEach(c => {
+                c.classList.remove('selected', 'correct', 'incorrect');
+                c.querySelector('svg').style.opacity = '0';
+            });
+        });
+        document.getElementById('result-bar').classList.add('hidden');
+        document.getElementById('check-btn').classList.remove('hidden');
+        document.getElementById('reset-btn').classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if ('speechSynthesis' in window) {
+            loadVoices();
+            window.speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
+        updateTrackUI();
+
+        gsap.set(['.header-area', '.tracks-area', '.player-card', '.subtitle-card', '.nav-area'], { opacity: 0, y: 20 });
+        const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
+        tl.to('.header-area', { opacity: 1, y: 0, duration: 0.6 })
+          .to('.tracks-area', { opacity: 1, y: 0, duration: 0.5 }, '-=0.3')
+          .to('.player-card', { opacity: 1, y: 0, duration: 0.6, ease: 'back.out(1.3)' }, '-=0.3')
+          .to('.subtitle-card', { opacity: 1, y: 0, duration: 0.5 }, '-=0.3')
+          .to('.nav-area', { opacity: 1, y: 0, duration: 0.4 }, '-=0.2');
+    });
+
+    window.stopSlideAudio = function() {
+        stopAudio();
+    };
+</script>
+</body>
+</html>

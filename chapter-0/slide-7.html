@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boston English Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        };
+
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        @keyframes float-bill {
+            0%, 100% { transform: translateY(0) rotate(var(--rot)); }
+            50% { transform: translateY(-10px) rotate(var(--rot)); }
+        }
+        .bill-float { animation: float-bill 4s ease-in-out infinite; }
+
+        .bill-card {
+            transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+            transform-origin: bottom center;
+        }
+        .bill-card:hover { transform: scale(1.05) rotate(0deg) !important; z-index: 20; }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+        .pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(99,102,241,0); }
+            100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+        }
+        .pulse-ring { animation: pulse-ring 2s ease infinite; }
+
+        .step-view { display: none; }
+        .step-view.active { display: flex; }
+
+        .progress-step { transition: all 0.4s ease; }
+        .progress-step.done { background: #0ea5e9; border-color: #0ea5e9; color: white; }
+        .progress-step.current { border-color: #0ea5e9; color: #0ea5e9; }
+        .dark .progress-step.done { background: #6366f1; border-color: #6366f1; }
+        .dark .progress-step.current { border-color: #6366f1; color: #6366f1; }
+        .progress-line { transition: all 0.5s ease; }
+        .progress-line.filled { background: #0ea5e9; }
+        .dark .progress-line.filled { background: #6366f1; }
+    </style>
+</head>
+<body class="h-full overflow-x-hidden">
+<div class="isolate relative min-h-[100dvh] overflow-x-hidden overflow-y-auto bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-50">
+
+    <!-- Background -->
+    <div class="pointer-events-none fixed inset-0 z-0">
+        <div class="absolute -top-32 -right-32 h-96 w-96 rounded-full bg-sky-300/50 blur-3xl dark:bg-indigo-400/10"></div>
+        <div class="absolute -bottom-32 -left-32 h-80 w-80 rounded-full bg-blue-300/40 blur-3xl dark:bg-purple-500/10"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[30rem] w-[30rem] rounded-full bg-cyan-200/30 blur-3xl dark:bg-indigo-300/5"></div>
+    </div>
+
+    <div class="relative z-10">
+        <div class="mx-auto flex min-h-[100dvh] w-full max-w-[950px] flex-col items-center justify-center px-5 py-6 sm:px-8 lg:px-14">
+
+            <!-- ===== STEP 0: INTRO ===== -->
+            <div id="step-0" class="step-view active flex-col items-center w-full">
+                <div class="flex w-full flex-col lg:flex-row items-center gap-8 lg:gap-12">
+
+                    <!-- Left: Intro text -->
+                    <div class="intro-text flex-1 opacity-0">
+                        <span class="inline-flex items-center gap-2 rounded-full border border-sky-400/50 bg-white/60 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-sky-700 backdrop-blur-sm mb-6 dark:border-white/15 dark:bg-white/5 dark:text-indigo-200">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01"/></svg>
+                            Discussion Activity
+                        </span>
+                        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black leading-[1.1] tracking-tight mb-5 text-slate-800 dark:text-white">
+                            Let's talk about<br><span class="bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-300 dark:to-orange-400 bg-clip-text text-transparent">paying bills</span>
+                        </h1>
+                        <p class="text-base sm:text-lg font-medium leading-relaxed text-slate-600 dark:text-indigo-200/80 max-w-md mb-8">
+                            Look at these bills carefully. Your teacher will ask you <strong class="text-slate-800 dark:text-white">3 questions</strong> about them. Think about your answers before responding.
+                        </p>
+
+                        <button id="ready-btn" onclick="startQuestions()" class="pulse-ring inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 dark:from-indigo-500 dark:to-purple-500 px-8 py-4 text-sm font-black uppercase tracking-wider text-white shadow-2xl shadow-sky-500/30 dark:shadow-indigo-500/30 transition-all hover:scale-105 hover:-translate-y-1 active:scale-95 opacity-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            Yes, I'm Ready!
+                        </button>
+                    </div>
+
+                    <!-- Right: Bills -->
+                    <div class="bills-area flex-shrink-0 w-full lg:w-[44%] flex items-center justify-center opacity-0">
+                        <div class="relative h-[320px] w-[280px] sm:h-[370px] sm:w-[330px]">
+                            <!-- General Bill -->
+                            <div class="bill-card bill-1 absolute left-0 top-4 w-[150px] sm:w-[175px] cursor-default" style="--rot:-6deg; transform: rotate(-6deg); z-index: 3;">
+                                <div class="bill-float rounded-2xl bg-gradient-to-b from-amber-400 to-orange-400 p-4 sm:p-5 shadow-2xl shadow-amber-900/30" style="--rot:-6deg;">
+                                    <p class="text-xs font-black uppercase tracking-wider text-orange-800/70">Bill</p>
+                                    <p class="mt-1.5 text-2xl sm:text-3xl font-black text-orange-900">$1,024</p>
+                                    <div class="mt-3 space-y-1.5">
+                                        <div class="h-1.5 w-full rounded-full bg-orange-500/30"></div>
+                                        <div class="h-1.5 w-3/4 rounded-full bg-orange-500/30"></div>
+                                        <div class="h-1.5 w-1/2 rounded-full bg-orange-500/30"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Water Bill -->
+                            <div class="bill-card bill-2 absolute left-[65px] sm:left-[75px] top-0 w-[150px] sm:w-[175px] cursor-default" style="--rot:3deg; transform: rotate(3deg); z-index: 4;">
+                                <div class="bill-float rounded-2xl bg-gradient-to-b from-sky-100 to-sky-200 p-4 sm:p-5 shadow-2xl shadow-sky-900/20" style="--rot:3deg; animation-delay: 0.8s;">
+                                    <p class="text-xs font-black uppercase tracking-wider text-sky-600">Water Bill</p>
+                                    <svg class="mt-1 w-6 h-6 text-sky-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z"/></svg>
+                                    <p class="mt-0.5 text-2xl sm:text-3xl font-black text-sky-700">$115.28</p>
+                                    <div class="mt-2 space-y-1.5">
+                                        <div class="h-1.5 w-full rounded-full bg-sky-300/40"></div>
+                                        <div class="h-1.5 w-2/3 rounded-full bg-sky-300/40"></div>
+                                    </div>
+                                    <div class="mt-2 h-5 w-full rounded-lg bg-sky-300/30 flex items-end justify-center gap-[2px] pb-0.5 overflow-hidden">
+                                        <div class="w-1 bg-sky-400/60 rounded-t" style="height:30%"></div>
+                                        <div class="w-1 bg-sky-400/60 rounded-t" style="height:60%"></div>
+                                        <div class="w-1 bg-sky-400/60 rounded-t" style="height:45%"></div>
+                                        <div class="w-1 bg-sky-400/60 rounded-t" style="height:80%"></div>
+                                        <div class="w-1 bg-sky-400/60 rounded-t" style="height:55%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Electricity Bill -->
+                            <div class="bill-card bill-3 absolute right-0 top-[55px] sm:top-[45px] w-[140px] sm:w-[165px] cursor-default" style="--rot:8deg; transform: rotate(8deg); z-index: 2;">
+                                <div class="bill-float rounded-2xl bg-gradient-to-b from-emerald-200 to-green-300 p-4 sm:p-5 shadow-2xl shadow-green-900/20" style="--rot:8deg; animation-delay: 1.5s;">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-[10px] font-black uppercase tracking-wider text-green-700">Electricity</p>
+                                        <svg class="w-4 h-4 text-yellow-500" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                    </div>
+                                    <p class="mt-1.5 text-2xl sm:text-3xl font-black text-green-800">$74.56</p>
+                                    <div class="mt-2 space-y-1.5">
+                                        <div class="h-1.5 w-full rounded-full bg-green-400/30"></div>
+                                        <div class="h-1.5 w-1/2 rounded-full bg-green-400/30"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== QUESTION STEPS (1, 2, 3) ===== -->
+            <div id="step-questions" class="step-view flex-col items-center w-full">
+
+                <!-- Progress bar -->
+                <div class="progress-bar mb-8 flex items-center justify-center gap-0 opacity-0">
+                    <div class="progress-step done flex h-9 w-9 items-center justify-center rounded-full border-2 border-sky-300/50 bg-white/60 text-xs font-black dark:border-white/20 dark:bg-white/5" data-step="0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                    <div class="progress-line h-[3px] w-8 bg-sky-300/40 dark:bg-white/15 rounded-full" data-line="0"></div>
+                    <div class="progress-step current flex h-9 w-9 items-center justify-center rounded-full border-2 border-sky-300/50 bg-white/60 text-xs font-black dark:border-white/20 dark:bg-white/5" data-step="1">1</div>
+                    <div class="progress-line h-[3px] w-8 bg-sky-300/40 dark:bg-white/15 rounded-full" data-line="1"></div>
+                    <div class="progress-step flex h-9 w-9 items-center justify-center rounded-full border-2 border-sky-300/50 bg-white/60 text-xs font-black text-slate-400 dark:border-white/20 dark:bg-white/5 dark:text-white/40" data-step="2">2</div>
+                    <div class="progress-line h-[3px] w-8 bg-sky-300/40 dark:bg-white/15 rounded-full" data-line="2"></div>
+                    <div class="progress-step flex h-9 w-9 items-center justify-center rounded-full border-2 border-sky-300/50 bg-white/60 text-xs font-black text-slate-400 dark:border-white/20 dark:bg-white/5 dark:text-white/40" data-step="3">3</div>
+                </div>
+
+                <!-- Question card -->
+                <div class="question-card w-full max-w-[650px] opacity-0">
+                    <div class="rounded-3xl border border-sky-300/40 bg-white/70 p-7 sm:p-10 shadow-2xl backdrop-blur-sm dark:border-white/10 dark:bg-white/[0.06]">
+
+                        <!-- Question number badge -->
+                        <div class="mb-5 flex items-center gap-3">
+                            <span id="q-badge" class="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-400/20 text-lg font-black text-amber-600 dark:bg-amber-400/15 dark:text-amber-300">1</span>
+                            <div>
+                                <p id="q-label" class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400 dark:text-indigo-300/60">Question 1 of 3</p>
+                            </div>
+                        </div>
+
+                        <!-- Question text -->
+                        <h2 id="q-text" class="text-2xl sm:text-3xl font-extrabold leading-snug tracking-tight mb-8 text-slate-800 dark:text-white">
+                            What kind of bills can you see?
+                        </h2>
+
+                        <!-- Waiting for answer -->
+                        <div class="waiting-bar flex items-center gap-3 rounded-2xl border border-sky-200/60 bg-white/50 px-5 py-4 dark:border-white/10 dark:bg-white/[0.04]">
+                            <div class="flex items-center gap-1.5">
+                                <span class="pulse-dot h-2.5 w-2.5 rounded-full bg-amber-500 dark:bg-amber-400"></span>
+                                <span class="pulse-dot h-2.5 w-2.5 rounded-full bg-amber-500 dark:bg-amber-400" style="animation-delay:0.3s"></span>
+                                <span class="pulse-dot h-2.5 w-2.5 rounded-full bg-amber-500 dark:bg-amber-400" style="animation-delay:0.6s"></span>
+                            </div>
+                            <p class="text-sm font-bold text-slate-500 dark:text-indigo-200/70">Teacher is waiting for your answer...</p>
+                        </div>
+
+                        <!-- Next / Done button -->
+                        <div class="mt-6 flex justify-end">
+                            <button id="q-next-btn" onclick="nextQuestion()" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 dark:from-indigo-500 dark:to-purple-500 px-6 py-3 text-sm font-black uppercase tracking-wider text-white shadow-lg shadow-sky-500/20 dark:shadow-indigo-500/20 transition-all hover:scale-105 hover:-translate-y-0.5 active:scale-95">
+                                Next Question
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mini bills reminder (small, bottom-right) -->
+                <div class="mini-bills mt-6 flex items-center gap-3 opacity-0">
+                    <div class="flex -space-x-3">
+                        <div class="h-10 w-8 rounded-lg bg-gradient-to-b from-amber-400 to-orange-400 shadow-lg rotate-[-5deg]"></div>
+                        <div class="h-10 w-8 rounded-lg bg-gradient-to-b from-sky-100 to-sky-200 shadow-lg rotate-[3deg]"></div>
+                        <div class="h-10 w-8 rounded-lg bg-gradient-to-b from-emerald-200 to-green-300 shadow-lg rotate-[8deg]"></div>
+                    </div>
+                    <p class="text-xs font-bold text-slate-400 dark:text-indigo-300/50 uppercase tracking-wider">Refer to the bills above</p>
+                </div>
+            </div>
+
+            <!-- ===== STEP COMPLETE ===== -->
+            <div id="step-done" class="step-view flex-col items-center justify-center text-center w-full">
+                <div class="done-content opacity-0">
+                    <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-100 dark:bg-emerald-400/15">
+                        <svg class="w-10 h-10 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl font-black tracking-tight mb-3 text-slate-800 dark:text-white">Great Discussion!</h2>
+                    <p class="text-base font-medium text-slate-500 dark:text-indigo-200/70 max-w-md mx-auto">You've answered all 3 questions. Well done! Your teacher will continue with the next activity.</p>
+                    <button onclick="resetAll()" class="mt-8 inline-flex items-center gap-2 rounded-xl border border-sky-300/50 bg-white/60 px-5 py-2.5 text-xs font-black uppercase tracking-wider text-sky-700 transition-all hover:bg-white/80 active:scale-95 dark:border-white/15 dark:bg-white/5 dark:text-indigo-200 dark:hover:bg-white/10">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Start Over
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    /* ===== Sound Effects (Web Audio API — no files needed) ===== */
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    function getCtx() { if (!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
+
+    function playTone(freq, duration, type, vol) {
+        try {
+            const ctx = getCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = type || 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            gain.gain.setValueAtTime(vol || 0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + duration);
+        } catch (e) {}
+    }
+
+    function sfxClick() {
+        playTone(880, 0.08, 'sine', 0.12);
+        setTimeout(() => playTone(1100, 0.06, 'sine', 0.08), 50);
+    }
+
+    function sfxReady() {
+        playTone(523, 0.12, 'sine', 0.15);
+        setTimeout(() => playTone(659, 0.12, 'sine', 0.13), 100);
+        setTimeout(() => playTone(784, 0.18, 'sine', 0.12), 200);
+    }
+
+    function sfxNext() {
+        playTone(660, 0.1, 'triangle', 0.12);
+        setTimeout(() => playTone(880, 0.1, 'triangle', 0.10), 80);
+    }
+
+    function sfxComplete() {
+        playTone(523, 0.15, 'sine', 0.14);
+        setTimeout(() => playTone(659, 0.12, 'sine', 0.12), 120);
+        setTimeout(() => playTone(784, 0.12, 'sine', 0.11), 240);
+        setTimeout(() => playTone(1047, 0.25, 'sine', 0.13), 360);
+    }
+
+    function sfxReset() {
+        playTone(600, 0.1, 'triangle', 0.10);
+        setTimeout(() => playTone(440, 0.12, 'triangle', 0.08), 80);
+    }
+
+    const questions = [
+        { num: 1, badge: 'bg-amber-400/15 text-amber-300', text: 'What kind of bills can you see?' },
+        { num: 2, badge: 'bg-sky-400/15 text-sky-300', text: 'How often do you pay your bills?' },
+        { num: 3, badge: 'bg-emerald-400/15 text-emerald-300', text: 'Do you need to go the bank to pay your bills?' }
+    ];
+
+    let currentQ = 0;
+
+    function showStep(id) {
+        document.querySelectorAll('.step-view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function startQuestions() {
+        sfxReady();
+        currentQ = 0;
+
+        gsap.to('#step-0', {
+            opacity: 0, y: -20, duration: 0.4, ease: 'power2.in',
+            onComplete: () => {
+                showStep('step-questions');
+                renderQuestion();
+                animateQuestionIn();
+            }
+        });
+    }
+
+    function renderQuestion() {
+        const q = questions[currentQ];
+        document.getElementById('q-badge').className = `flex h-10 w-10 items-center justify-center rounded-2xl text-lg font-black ${q.badge}`;
+        document.getElementById('q-badge').textContent = q.num;
+        document.getElementById('q-label').textContent = `Question ${q.num} of ${questions.length}`;
+        document.getElementById('q-text').textContent = q.text;
+
+        const btn = document.getElementById('q-next-btn');
+        if (currentQ === questions.length - 1) {
+            btn.innerHTML = `Done <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>`;
+        } else {
+            btn.innerHTML = `Next Question <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>`;
+        }
+
+        updateProgress();
+    }
+
+    function updateProgress() {
+        document.querySelectorAll('.progress-step').forEach((el, i) => {
+            el.classList.remove('done', 'current');
+            if (i === 0) {
+                el.classList.add('done');
+                el.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+            } else if (i <= currentQ) {
+                el.classList.add('done');
+                el.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+            } else if (i === currentQ + 1) {
+                el.classList.add('current');
+                el.textContent = i;
+            } else {
+                el.textContent = i;
+                el.style.color = '';
+            }
+        });
+
+        document.querySelectorAll('.progress-line').forEach((el, i) => {
+            el.classList.toggle('filled', i <= currentQ);
+        });
+    }
+
+    function animateQuestionIn() {
+        gsap.set(['.progress-bar', '.question-card', '.mini-bills'], { opacity: 0, y: 20 });
+        gsap.set('#step-questions', { opacity: 1 });
+
+        const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
+        tl.to('.progress-bar', { opacity: 1, y: 0, duration: 0.5 })
+          .to('.question-card', { opacity: 1, y: 0, duration: 0.6, ease: 'back.out(1.3)' }, '-=0.25')
+          .to('.mini-bills', { opacity: 1, y: 0, duration: 0.4 }, '-=0.2');
+    }
+
+    function nextQuestion() {
+        if (currentQ < questions.length - 1) {
+            sfxNext();
+            currentQ++;
+            gsap.to('.question-card', {
+                opacity: 0, x: -30, duration: 0.3, ease: 'power2.in',
+                onComplete: () => {
+                    renderQuestion();
+                    gsap.set('.question-card', { x: 30 });
+                    gsap.to('.question-card', { opacity: 1, x: 0, duration: 0.5, ease: 'back.out(1.2)' });
+                }
+            });
+        } else {
+            sfxComplete();
+            showComplete();
+        }
+    }
+
+    function showComplete() {
+        gsap.to('#step-questions', {
+            opacity: 0, y: -20, duration: 0.4, ease: 'power2.in',
+            onComplete: () => {
+                showStep('step-done');
+                gsap.set('.done-content', { opacity: 0, scale: 0.9 });
+                gsap.to('.done-content', { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.5)' });
+            }
+        });
+    }
+
+    function resetAll() {
+        sfxReset();
+        currentQ = 0;
+        gsap.to('#step-done', {
+            opacity: 0, duration: 0.3,
+            onComplete: () => {
+                showStep('step-0');
+                gsap.set('#step-0', { opacity: 1, y: 0 });
+                gsap.set(['.intro-text', '.bills-area', '#ready-btn'], { opacity: 1, clearProps: 'all' });
+                gsap.set(['.bill-1', '.bill-2', '.bill-3'], { clearProps: 'all' });
+                gsap.from('.intro-text', { opacity: 0, x: -20, duration: 0.5, ease: 'power4.out' });
+            }
+        });
+    }
+
+    /* ===== Init ===== */
+    document.addEventListener('DOMContentLoaded', () => {
+        function playIn() {
+            if (!window.gsap) {
+                document.querySelectorAll('.intro-text, .bills-area, #ready-btn').forEach(el => el.style.opacity = '1');
+                return;
+            }
+
+            gsap.set('.intro-text', { opacity: 0, x: -30 });
+            gsap.set('#ready-btn', { opacity: 0, y: 15 });
+            gsap.set('.bills-area', { opacity: 0, x: 40 });
+            gsap.set('.bill-1', { opacity: 0, y: 50, rotation: -15 });
+            gsap.set('.bill-2', { opacity: 0, y: 50, rotation: 10 });
+            gsap.set('.bill-3', { opacity: 0, y: 50, rotation: 15 });
+
+            const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
+            tl.to('.intro-text', { opacity: 1, x: 0, duration: 0.7 })
+              .to('.bills-area', { opacity: 1, x: 0, duration: 0.6 }, '-=0.4')
+              .to('.bill-1', { opacity: 1, y: 0, rotation: -6, duration: 0.6, ease: 'back.out(1.4)' }, '-=0.4')
+              .to('.bill-2', { opacity: 1, y: 0, rotation: 3, duration: 0.6, ease: 'back.out(1.4)' }, '-=0.35')
+              .to('.bill-3', { opacity: 1, y: 0, rotation: 8, duration: 0.6, ease: 'back.out(1.4)' }, '-=0.35')
+              .to('#ready-btn', { opacity: 1, y: 0, duration: 0.5, ease: 'back.out(1.5)' }, '-=0.2');
+
+            window.resetSlide = () => {
+                tl.pause(0);
+                currentQ = 0;
+                showStep('step-0');
+                gsap.set(['.intro-text', '.bills-area', '#ready-btn', '.bill-1', '.bill-2', '.bill-3', '#step-0', '#step-questions', '#step-done', '.progress-bar', '.question-card', '.mini-bills', '.done-content'], { clearProps: 'all' });
+                document.querySelectorAll('.step-view').forEach(v => v.classList.remove('active'));
+                document.getElementById('step-0').classList.add('active');
+                tl.restart();
+            };
+        }
+        playIn();
+    });
+
+    window.stopSlideAudio = function () {};
+
+    // Theme sync - compatible with reader.html
+    (function() {
+        let useDark = false;
+        try { 
+            if (window.parent && window.parent !== window) {
+                useDark = window.parent.document.documentElement.classList.contains('dark'); 
+            }
+        } catch (e) {}
+        if (!useDark) { 
+            const s = localStorage.getItem('editor-theme-preference'); 
+            const p = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; 
+            useDark = s ? s === 'dark' : p; 
+        }
+        document.documentElement.classList.toggle('dark', useDark);
+        document.body.classList.toggle('dark', useDark);
+    })();
+    window.setTheme = function(t) { 
+        document.documentElement.classList.toggle('dark', t === 'dark'); 
+        document.body.classList.toggle('dark', t === 'dark');
+    };
+</script>
+</body>
+</html>
