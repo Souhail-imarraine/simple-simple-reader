@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boston English Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        };
+        (function applyInitialTheme() {
+            let useDark = false;
+            try { if (window.parent && window.parent !== window) useDark = window.parent.document.documentElement.classList.contains('dark'); } catch (e) {}
+            if (!useDark) { const s = localStorage.getItem('theme-preference'); const p = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; useDark = s ? s === 'dark' : p; }
+            document.documentElement.classList.toggle('dark', useDark);
+        })();
+        window.setTheme = function(t) { document.documentElement.classList.toggle('dark', t === 'dark'); localStorage.setItem('theme-preference', t === 'dark' ? 'dark' : 'light'); };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        .word-bank-item {
+            transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+            cursor: pointer;
+        }
+        .word-bank-item:hover:not(.used) {
+            transform: scale(1.05);
+            background: rgba(14,165,233,0.2);
+            border-color: #0ea5e9;
+        }
+        .dark .word-bank-item:hover:not(.used) {
+            background: rgba(99,102,241,0.2);
+            border-color: #6366f1;
+        }
+        .word-bank-item.selected {
+            background: rgba(14,165,233,0.3);
+            border-color: #0ea5e9;
+            transform: scale(1.08);
+        }
+        .dark .word-bank-item.selected {
+            background: rgba(99,102,241,0.3);
+            border-color: #6366f1;
+        }
+        .word-bank-item.used {
+            opacity: 0.3;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+
+        .blank-slot {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 100px;
+            height: 28px;
+            border-bottom: 2px dashed rgba(100,116,139,0.5);
+            margin: 0 4px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            vertical-align: middle;
+        }
+        .dark .blank-slot {
+            border-bottom-color: rgba(255,255,255,0.4);
+        }
+        .blank-slot:hover {
+            border-bottom-color: #0284c7;
+            background: rgba(14,165,233,0.1);
+        }
+        .dark .blank-slot:hover {
+            border-bottom-color: #6366f1;
+            background: rgba(99,102,241,0.1);
+        }
+        .blank-slot.filled {
+            border-bottom-style: solid;
+            border-bottom-color: #0284c7;
+            background: rgba(14,165,233,0.15);
+        }
+        .dark .blank-slot.filled {
+            border-bottom-color: #6366f1;
+            background: rgba(99,102,241,0.15);
+        }
+        .blank-slot.correct {
+            border-bottom-color: #10b981 !important;
+            background: rgba(16,185,129,0.2) !important;
+            color: #34d399 !important;
+        }
+        .blank-slot.wrong {
+            border-bottom-color: #ef4444 !important;
+            background: rgba(239,68,68,0.2) !important;
+            color: #f87171 !important;
+        }
+
+        @keyframes pop { 0%{transform:scale(.9)} 50%{transform:scale(1.1)} 100%{transform:scale(1)} }
+        .pop { animation: pop 0.3s ease; }
+
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-4px)} 40%{transform:translateX(4px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
+        .shake { animation: shake 0.4s ease; }
+
+        .petal {
+            border-radius: 60% 40% 50% 50% / 70% 50% 50% 30%;
+            opacity: 0.4;
+        }
+    </style>
+</head>
+<body class="h-full overflow-x-hidden">
+<div class="isolate relative min-h-[100dvh] overflow-x-hidden overflow-y-auto bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-50">
+
+    <div class="pointer-events-none fixed inset-0 z-0">
+        <div class="absolute -top-28 -left-28 h-80 w-80 rounded-full bg-sky-300/40 blur-3xl dark:bg-indigo-400/15"></div>
+        <div class="absolute -bottom-36 -right-28 h-96 w-96 rounded-full bg-blue-300/30 blur-3xl dark:bg-purple-500/15"></div>
+    </div>
+
+    <!-- Decorative petals bottom-left -->
+    <div class="pointer-events-none absolute bottom-0 left-0 w-[180px] h-[180px] sm:w-[220px] sm:h-[220px]">
+        <div class="petal bg-indigo-300 dark:bg-indigo-400 w-[70px] h-[120px] sm:w-[90px] sm:h-[150px] absolute bottom-0 left-[20px] rotate-[-20deg] origin-bottom-right"></div>
+        <div class="petal bg-indigo-400 dark:bg-indigo-500 w-[60px] h-[110px] sm:w-[80px] sm:h-[140px] absolute bottom-0 left-[0px] rotate-[-45deg] origin-bottom-right"></div>
+    </div>
+
+    <div class="relative z-10">
+        <div class="mx-auto flex min-h-[100dvh] w-full max-w-[850px] flex-col px-4 py-5 sm:px-6">
+
+            <!-- Header -->
+            <div class="slide-header mb-5 opacity-0">
+                <h1 class="text-2xl sm:text-3xl font-black tracking-tight mb-2 text-slate-800 dark:text-white">Fill-in with the right <span class="bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-300 dark:to-orange-400 bg-clip-text text-transparent">word:</span></h1>
+                <p class="text-sm font-medium text-slate-500 dark:text-indigo-200/70">active / computer system / cash / form / account / email / signature / deposit / ID card</p>
+            </div>
+
+            <!-- Main Text with Blanks -->
+            <div class="text-section rounded-2xl border border-sky-300/40 bg-white/60 p-5 sm:p-6 mb-5 opacity-0 dark:border-white/10 dark:bg-white/[0.03]">
+                <p class="text-base sm:text-lg leading-[2.2] font-medium text-slate-700 dark:text-white/90" id="fill-text">
+                    The customer went to the bank to open a new <span class="blank-slot" data-blank="1" onclick="fillBlank(1)"><span class="num text-[10px] text-slate-400 dark:text-indigo-300/60">(1)</span></span>. The worker asked for his <span class="blank-slot" data-blank="2" onclick="fillBlank(2)"><span class="num text-[10px] text-slate-400 dark:text-indigo-300/60">(2)</span></span> to check who he was. He filled out a <span class="blank-slot" data-blank="3" onclick="fillBlank(3)"><span class="num text-[10px] text-slate-400 dark:text-indigo-300/60">(3)</span></span> and gave a <span class="blank-slot" data-blank="4" onclick="fillBlank(4)"><span class="num text-[10px] text-slate-400 dark:text-indigo-300/60">(4)</span></span>. Then the worker asked how much he wanted to <span class="blank-slot" data-blank="5" onclick="fillBlank(5)"><span class="num text-[10px] text-slate-400 dark:text-indigo-300/60">(5)</span></span>. He gave $500 in <span class="blank-slot" data-blank="6" onclick="fillBlank(6)"><span class="num text-[10px] text-slate-400 dark:text-indigo-300/60">(6)</span></span>. The worker put everything into the <span class="blank-slot" data-blank="7" onclick="fillBlank(7)"><span class="num text-[10px] text-slate-400 dark:text-indigo-300/60">(7)</span></span>. He said the account would be <span class="blank-slot" data-blank="8" onclick="fillBlank(8)"><span class="num text-[10px] text-slate-400 dark:text-indigo-300/60">(8)</span></span> soon. He also said the customer would get an <span class="blank-slot" data-blank="9" onclick="fillBlank(9)"><span class="num text-[10px] text-slate-400 dark:text-indigo-300/60">(9)</span></span> soon.
+                </p>
+            </div>
+
+            <!-- Word Bank -->
+            <div class="word-bank-section opacity-0">
+                <div class="flex items-center gap-2 mb-3">
+                    <svg class="w-4 h-4 text-amber-600 dark:text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600/80 dark:text-amber-300/80">Word Bank — Click a word, then click a blank</span>
+                </div>
+                <div class="flex flex-wrap gap-2" id="word-bank">
+                    <!-- Words injected by JS -->
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions-section mt-5 flex flex-wrap items-center justify-center gap-3 opacity-0">
+                <button id="check-btn" onclick="checkAnswers()" class="flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-500 dark:from-indigo-500 dark:to-purple-500 px-6 py-3 text-sm font-black uppercase tracking-wider text-white shadow-lg shadow-sky-500/25 dark:shadow-indigo-500/25 transition-all hover:scale-105 active:scale-95">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    Check Answers
+                </button>
+                <button onclick="resetExercise()" class="flex items-center gap-2 rounded-xl border-2 border-sky-400/50 bg-white/60 px-5 py-2.5 text-xs font-black uppercase tracking-wider text-sky-700 transition-all hover:bg-white/80 active:scale-95 dark:border-white/15 dark:bg-white/5 dark:text-indigo-200 dark:hover:bg-white/10">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    Reset
+                </button>
+            </div>
+
+            <!-- Result -->
+            <div id="result-msg" class="hidden mt-4 rounded-2xl p-4 text-center max-w-md mx-auto"></div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    function getCtx() { if (!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
+    function playTone(f, d, t, v) {
+        try {
+            const c = getCtx(), o = c.createOscillator(), g = c.createGain();
+            o.type = t || 'sine'; o.frequency.setValueAtTime(f, c.currentTime);
+            g.gain.setValueAtTime(v || 0.12, c.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + d);
+            o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + d);
+        } catch (e) {}
+    }
+    function sfxClick() { playTone(700, 0.06, 'sine', 0.08); }
+    function sfxPlace() { playTone(880, 0.08, 'sine', 0.1); setTimeout(() => playTone(1100, 0.06, 'sine', 0.08), 50); }
+    function sfxCorrect() { playTone(660, 0.12, 'sine', 0.15); setTimeout(() => playTone(880, 0.18, 'sine', 0.12), 100); }
+    function sfxWrong() { playTone(300, 0.2, 'triangle', 0.15); setTimeout(() => playTone(220, 0.25, 'triangle', 0.12), 120); }
+    function sfxComplete() { playTone(523, 0.12, 'sine', 0.12); setTimeout(() => playTone(659, 0.1, 'sine', 0.1), 100); setTimeout(() => playTone(784, 0.1, 'sine', 0.09), 200); setTimeout(() => playTone(1047, 0.25, 'sine', 0.12), 300); }
+
+    const answers = {
+        1: 'account',
+        2: 'ID card',
+        3: 'form',
+        4: 'signature',
+        5: 'deposit',
+        6: 'cash',
+        7: 'computer system',
+        8: 'active',
+        9: 'email'
+    };
+
+    const wordBank = ['account', 'ID card', 'form', 'signature', 'deposit', 'cash', 'computer system', 'active', 'email'];
+
+    let selectedWord = null;
+    let userAnswers = {};
+    let checked = false;
+
+    function buildWordBank() {
+        const container = document.getElementById('word-bank');
+        const shuffled = [...wordBank].sort(() => Math.random() - 0.5);
+        container.innerHTML = shuffled.map((word, i) => `
+            <button class="word-bank-item rounded-lg border-2 border-sky-300/50 bg-white/80 px-4 py-2 text-sm font-bold text-slate-700 dark:border-white/20 dark:bg-white/5 dark:text-white/90" data-word="${word}" onclick="selectWord('${word}')">
+                (${i + 1}) ${word}
+            </button>
+        `).join('');
+    }
+
+    function selectWord(word) {
+        if (checked) return;
+        
+        const btn = document.querySelector(`.word-bank-item[data-word="${word}"]`);
+        if (btn.classList.contains('used')) return;
+
+        sfxClick();
+
+        // Deselect previous
+        document.querySelectorAll('.word-bank-item').forEach(el => el.classList.remove('selected'));
+
+        // Select new
+        btn.classList.add('selected');
+        selectedWord = word;
+    }
+
+    function fillBlank(blankNum) {
+        if (checked) return;
+
+        const slot = document.querySelector(`.blank-slot[data-blank="${blankNum}"]`);
+
+        // If clicking a filled slot, clear it
+        if (userAnswers[blankNum]) {
+            const oldWord = userAnswers[blankNum];
+            const oldBtn = document.querySelector(`.word-bank-item[data-word="${oldWord}"]`);
+            if (oldBtn) oldBtn.classList.remove('used');
+            delete userAnswers[blankNum];
+            slot.innerHTML = `<span class="num text-[10px] text-indigo-300/60">(${blankNum})</span>`;
+            slot.classList.remove('filled');
+            sfxClick();
+            return;
+        }
+
+        // If no word selected, do nothing
+        if (!selectedWord) return;
+
+        sfxPlace();
+
+        // Fill the blank
+        userAnswers[blankNum] = selectedWord;
+        slot.innerHTML = `<span class="text-sm font-bold text-amber-300">${selectedWord}</span>`;
+        slot.classList.add('filled', 'pop');
+
+        // Mark word as used
+        const btn = document.querySelector(`.word-bank-item[data-word="${selectedWord}"]`);
+        btn.classList.remove('selected');
+        btn.classList.add('used');
+
+        selectedWord = null;
+
+        setTimeout(() => slot.classList.remove('pop'), 300);
+    }
+
+    function checkAnswers() {
+        if (checked) return;
+        checked = true;
+
+        let correct = 0;
+
+        for (let i = 1; i <= 9; i++) {
+            const slot = document.querySelector(`.blank-slot[data-blank="${i}"]`);
+            const userAns = userAnswers[i];
+            const correctAns = answers[i];
+
+            if (userAns === correctAns) {
+                correct++;
+                slot.classList.add('correct', 'pop');
+                setTimeout(() => sfxCorrect(), i * 50);
+            } else {
+                slot.classList.add('wrong', 'shake');
+                // Show correct answer
+                setTimeout(() => {
+                    slot.innerHTML = `<span class="text-sm font-bold">${correctAns}</span>`;
+                    slot.classList.remove('wrong');
+                    slot.classList.add('correct');
+                }, 800);
+                sfxWrong();
+            }
+        }
+
+        // Show result
+        setTimeout(() => {
+            showResult(correct);
+        }, 500);
+    }
+
+    function showResult(correct) {
+        const resultMsg = document.getElementById('result-msg');
+        resultMsg.classList.remove('hidden');
+
+        const pct = Math.round((correct / 9) * 100);
+
+        if (pct === 100) {
+            sfxComplete();
+            resultMsg.className = 'mt-4 rounded-2xl p-4 text-center max-w-md mx-auto bg-emerald-500/15 border border-emerald-500/20';
+            resultMsg.innerHTML = `
+                <div class="flex items-center justify-center gap-2 mb-1">
+                    <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span class="text-lg font-black text-emerald-400">Perfect!</span>
+                </div>
+                <p class="text-sm font-medium text-emerald-300/70">${correct}/9 correct — Excellent work!</p>
+            `;
+        } else if (pct >= 60) {
+            resultMsg.className = 'mt-4 rounded-2xl p-4 text-center max-w-md mx-auto bg-amber-500/15 border border-amber-500/20';
+            resultMsg.innerHTML = `
+                <div class="flex items-center justify-center gap-2 mb-1">
+                    <svg class="w-6 h-6 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <span class="text-lg font-black text-amber-400">Good Job!</span>
+                </div>
+                <p class="text-sm font-medium text-amber-300/70">${correct}/9 correct — Keep practicing!</p>
+            `;
+        } else {
+            resultMsg.className = 'mt-4 rounded-2xl p-4 text-center max-w-md mx-auto bg-rose-500/15 border border-rose-500/20';
+            resultMsg.innerHTML = `
+                <div class="flex items-center justify-center gap-2 mb-1">
+                    <svg class="w-6 h-6 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span class="text-lg font-black text-rose-400">Keep Trying!</span>
+                </div>
+                <p class="text-sm font-medium text-rose-300/70">${correct}/9 correct — Review and try again!</p>
+            `;
+        }
+
+        gsap.from(resultMsg, { opacity: 0, y: 20, duration: 0.5, ease: 'back.out(1.5)' });
+    }
+
+    function resetExercise() {
+        sfxClick();
+        checked = false;
+        selectedWord = null;
+        userAnswers = {};
+
+        // Reset blanks
+        for (let i = 1; i <= 9; i++) {
+            const slot = document.querySelector(`.blank-slot[data-blank="${i}"]`);
+            slot.innerHTML = `<span class="num text-[10px] text-indigo-300/60">(${i})</span>`;
+            slot.classList.remove('filled', 'correct', 'wrong', 'pop', 'shake');
+        }
+
+        // Reset word bank
+        document.querySelectorAll('.word-bank-item').forEach(el => {
+            el.classList.remove('selected', 'used');
+        });
+
+        // Hide result
+        document.getElementById('result-msg').classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        buildWordBank();
+
+        if (!window.gsap) {
+            document.querySelectorAll('.slide-header, .text-section, .word-bank-section, .actions-section').forEach(el => el.style.opacity = '1');
+            return;
+        }
+
+        gsap.set(['.slide-header', '.text-section', '.word-bank-section', '.actions-section'], { opacity: 0, y: 20 });
+        const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
+        tl.to('.slide-header', { opacity: 1, y: 0, duration: 0.5 })
+          .to('.text-section', { opacity: 1, y: 0, duration: 0.5 }, '-=0.3')
+          .to('.word-bank-section', { opacity: 1, y: 0, duration: 0.5 }, '-=0.3')
+          .to('.actions-section', { opacity: 1, y: 0, duration: 0.4 }, '-=0.2');
+
+        setTimeout(() => {
+            document.querySelectorAll('.word-bank-item').forEach((el, i) => {
+                gsap.set(el, { opacity: 0, scale: 0.8 });
+                gsap.to(el, { opacity: 1, scale: 1, duration: 0.25, delay: i * 0.05, ease: 'back.out(1.5)' });
+            });
+        }, 400);
+
+        window.resetSlide = () => {
+            resetExercise();
+            gsap.set(['.slide-header', '.text-section', '.word-bank-section', '.actions-section'], { clearProps: 'all', opacity: 0, y: 20 });
+            tl.restart();
+        };
+    });
+
+    window.stopSlideAudio = function () {};
+</script>
+</body>
+</html>

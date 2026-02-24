@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boston English Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'ui-sans-serif', 'system-ui']
+                    }
+                }
+            }
+        };
+        (function applyInitialTheme() {
+            let useDark = false;
+            try { if (window.parent && window.parent !== window) useDark = window.parent.document.documentElement.classList.contains('dark'); } catch (e) {}
+            if (!useDark) { const s = localStorage.getItem('theme-preference'); const p = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; useDark = s ? s === 'dark' : p; }
+            document.documentElement.classList.toggle('dark', useDark);
+        })();
+        window.setTheme = function(t) { document.documentElement.classList.toggle('dark', t === 'dark'); localStorage.setItem('theme-preference', t === 'dark' ? 'dark' : 'light'); };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        .quiz-card {
+            transition: all 0.3s ease;
+        }
+        .quiz-card.answered {
+            pointer-events: none;
+        }
+
+        .opt-btn {
+            transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+            cursor: pointer;
+        }
+        .opt-btn:hover:not(.disabled) {
+            transform: scale(1.02);
+            border-color: #6366f1;
+            background: rgba(99,102,241,0.1);
+        }
+        .opt-btn.correct {
+            border-color: #10b981 !important;
+            background: rgba(16,185,129,0.15) !important;
+            color: #10b981 !important;
+        }
+        .opt-btn.wrong {
+            border-color: #ef4444 !important;
+            background: rgba(239,68,68,0.15) !important;
+            color: #ef4444 !important;
+        }
+        .opt-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        @keyframes pop { 0%{transform:scale(.9)} 50%{transform:scale(1.1)} 100%{transform:scale(1)} }
+        .pop { animation: pop 0.3s ease; }
+
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+        .shake { animation: shake 0.4s ease; }
+
+        .result-icon {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="h-full overflow-x-hidden">
+<div class="isolate relative min-h-[100dvh] overflow-x-hidden overflow-y-auto bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-50">
+
+    <div class="pointer-events-none fixed inset-0 z-0">
+        <div class="absolute -top-28 -left-28 h-80 w-80 rounded-full bg-sky-300/40 blur-3xl dark:bg-indigo-400/15"></div>
+        <div class="absolute -bottom-36 -right-28 h-96 w-96 rounded-full bg-blue-300/30 blur-3xl dark:bg-purple-500/15"></div>
+    </div>
+
+    <div class="relative z-10">
+        <div class="mx-auto flex min-h-[100dvh] w-full max-w-[800px] flex-col px-4 py-5 sm:px-6">
+
+            <!-- Header -->
+            <div class="slide-header mb-5 text-center opacity-0">
+                <span class="inline-flex items-center gap-2 rounded-full border border-sky-400/50 bg-sky-100/60 px-5 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-sky-700 backdrop-blur-sm mb-3 dark:border-white/15 dark:bg-white/5 dark:text-indigo-200">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    Vocabulary Quiz
+                </span>
+                <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-800 dark:text-white">Let's do this <span class="bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-300 dark:to-orange-400 bg-clip-text text-transparent">quiz!</span></h1>
+                <p class="mt-2 text-sm font-medium text-slate-500 dark:text-indigo-200/60">Select the correct answer for each question.</p>
+            </div>
+
+            <!-- Score Bar -->
+            <div class="score-bar mb-4 flex items-center justify-between rounded-xl border border-sky-300/40 bg-white/60 px-4 py-2.5 opacity-0 dark:border-white/10 dark:bg-white/5">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-bold text-slate-500 dark:text-indigo-300/60">Progress:</span>
+                    <div class="flex gap-1.5" id="progress-dots">
+                        <!-- Dots injected by JS -->
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-500 dark:text-indigo-300/60">Score:</span>
+                    <span id="score" class="text-lg font-black text-slate-800 dark:text-white">0</span>
+                    <span class="text-sm font-bold text-slate-400 dark:text-indigo-300/40">/ 6</span>
+                </div>
+            </div>
+
+            <!-- Questions -->
+            <div class="questions-container space-y-3 flex-1" id="questions">
+                <!-- Questions injected by JS -->
+            </div>
+
+            <!-- Result & Reset -->
+            <div id="result-section" class="hidden mt-5 text-center">
+                <div id="result-card" class="rounded-2xl p-5 mb-4"></div>
+                <button onclick="resetQuiz()" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-500 dark:from-indigo-500 dark:to-purple-500 px-6 py-3 text-sm font-black uppercase tracking-wider text-white shadow-lg shadow-sky-500/25 dark:shadow-indigo-500/25 transition-all hover:scale-105 active:scale-95">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    Try Again
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    function getCtx() { if (!audioCtx) audioCtx = new AudioCtx(); return audioCtx; }
+    function playTone(f, d, t, v) {
+        try {
+            const c = getCtx(), o = c.createOscillator(), g = c.createGain();
+            o.type = t || 'sine'; o.frequency.setValueAtTime(f, c.currentTime);
+            g.gain.setValueAtTime(v || 0.12, c.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + d);
+            o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + d);
+        } catch (e) {}
+    }
+    function sfxCorrect() { playTone(660, 0.12, 'sine', 0.15); setTimeout(() => playTone(880, 0.18, 'sine', 0.12), 100); }
+    function sfxWrong() { playTone(300, 0.2, 'triangle', 0.15); setTimeout(() => playTone(220, 0.25, 'triangle', 0.12), 120); }
+    function sfxComplete() { playTone(523, 0.12, 'sine', 0.12); setTimeout(() => playTone(659, 0.1, 'sine', 0.1), 100); setTimeout(() => playTone(784, 0.1, 'sine', 0.09), 200); setTimeout(() => playTone(1047, 0.25, 'sine', 0.12), 300); }
+    function sfxClick() { playTone(600, 0.05, 'sine', 0.08); }
+
+    const quizData = [
+        {
+            question: "The amount of money you have in a bank is called",
+            options: ["Balance", "Bank Statement", "Bank Transfer"],
+            answer: 0
+        },
+        {
+            question: "When you move money from one bank to another is",
+            options: ["Bank Statement", "Withdraw", "Transfer"],
+            answer: 2
+        },
+        {
+            question: "To take out money from your bank account is",
+            options: ["Deposit", "Transfer", "Overdraw"],
+            answer: 2
+        },
+        {
+            question: "A document to show how much money you have is a",
+            options: ["Bank Transfer", "Bank Statement", "Withdraw"],
+            answer: 1
+        },
+        {
+            question: "Money going in and out of a bank account is called",
+            options: ["Deposit", "Withdraw", "Transaction"],
+            answer: 2
+        },
+        {
+            question: "Money going in and going out of a bank account, are called",
+            options: ["Cash machine", "Standing order", "Deposit", "Branch", "Cashback", "Transactions"],
+            answer: 5
+        }
+    ];
+
+    let score = 0;
+    let answered = 0;
+
+    function buildQuiz() {
+        const container = document.getElementById('questions');
+        container.innerHTML = quizData.map((q, qIdx) => `
+            <div class="quiz-card rounded-xl border border-sky-300/40 bg-white/60 p-4 opacity-0 dark:border-white/10 dark:bg-white/[0.03]" data-q="${qIdx}">
+                <div class="flex items-start gap-3 mb-3">
+                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-sky-500/20 text-xs font-black text-sky-700 dark:bg-indigo-500/20 dark:text-indigo-300">${qIdx + 1}</span>
+                    <p class="text-sm font-bold text-slate-700 dark:text-white leading-relaxed pt-0.5">${q.question}?</p>
+                </div>
+                <div class="grid ${q.options.length > 3 ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-3'} gap-2 pl-10">
+                    ${q.options.map((opt, oIdx) => `
+                        <button class="opt-btn rounded-lg border-2 border-sky-300/50 bg-white/80 px-3 py-2 text-xs font-bold text-slate-700 text-center dark:border-white/15 dark:bg-white/5 dark:text-white/90" data-q="${qIdx}" data-opt="${oIdx}" onclick="selectAnswer(${qIdx}, ${oIdx})">
+                            ${opt}
+                        </button>
+                    `).join('')}
+                </div>
+                <div class="result-icon pl-10 mt-2 h-6 flex items-center" id="result-${qIdx}"></div>
+            </div>
+        `).join('');
+
+        // Build progress dots
+        const dotsContainer = document.getElementById('progress-dots');
+        dotsContainer.innerHTML = quizData.map((_, i) => `
+            <div class="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-white/20 transition-all" data-dot="${i}"></div>
+        `).join('');
+    }
+
+    function selectAnswer(qIdx, optIdx) {
+        const card = document.querySelector(`.quiz-card[data-q="${qIdx}"]`);
+        if (card.classList.contains('answered')) return;
+
+        sfxClick();
+        card.classList.add('answered');
+        answered++;
+
+        const correct = quizData[qIdx].answer;
+        const isCorrect = optIdx === correct;
+
+        const buttons = card.querySelectorAll('.opt-btn');
+        buttons.forEach((btn, i) => {
+            btn.classList.add('disabled');
+            if (i === correct) {
+                btn.classList.add('correct', 'pop');
+            }
+            if (i === optIdx && !isCorrect) {
+                btn.classList.add('wrong', 'shake');
+            }
+        });
+
+        // Show result
+        const resultEl = document.getElementById(`result-${qIdx}`);
+        if (isCorrect) {
+            score++;
+            sfxCorrect();
+            resultEl.innerHTML = `
+                <span class="inline-flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    Correct!
+                </span>
+            `;
+        } else {
+            sfxWrong();
+            resultEl.innerHTML = `
+                <span class="inline-flex items-center gap-1.5 text-rose-400 text-xs font-bold">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Wrong! Answer: ${quizData[qIdx].options[correct]}
+                </span>
+            `;
+        }
+        gsap.from(resultEl, { opacity: 0, x: -10, duration: 0.3 });
+
+        // Update score
+        document.getElementById('score').textContent = score;
+
+        // Update progress dot
+        const dot = document.querySelector(`[data-dot="${qIdx}"]`);
+        dot.classList.remove('bg-white/20');
+        dot.classList.add(isCorrect ? 'bg-emerald-500' : 'bg-rose-500');
+
+        // Check if all answered
+        if (answered === quizData.length) {
+            setTimeout(showFinalResult, 600);
+        }
+    }
+
+    function showFinalResult() {
+        sfxComplete();
+        const resultSection = document.getElementById('result-section');
+        const resultCard = document.getElementById('result-card');
+        resultSection.classList.remove('hidden');
+
+        const pct = Math.round((score / quizData.length) * 100);
+
+        if (pct === 100) {
+            resultCard.className = 'rounded-2xl p-5 mb-4 bg-emerald-500/15 border border-emerald-500/20';
+            resultCard.innerHTML = `
+                <svg class="w-12 h-12 mx-auto mb-2 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <h3 class="text-xl font-black text-emerald-400 mb-1">Perfect Score!</h3>
+                <p class="text-sm font-medium text-emerald-300/70">${score}/${quizData.length} correct - Excellent work!</p>
+            `;
+        } else if (pct >= 60) {
+            resultCard.className = 'rounded-2xl p-5 mb-4 bg-amber-500/15 border border-amber-500/20';
+            resultCard.innerHTML = `
+                <svg class="w-12 h-12 mx-auto mb-2 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <h3 class="text-xl font-black text-amber-400 mb-1">Good Job!</h3>
+                <p class="text-sm font-medium text-amber-300/70">${score}/${quizData.length} correct - Keep practicing!</p>
+            `;
+        } else {
+            resultCard.className = 'rounded-2xl p-5 mb-4 bg-rose-500/15 border border-rose-500/20';
+            resultCard.innerHTML = `
+                <svg class="w-12 h-12 mx-auto mb-2 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <h3 class="text-xl font-black text-rose-400 mb-1">Keep Trying!</h3>
+                <p class="text-sm font-medium text-rose-300/70">${score}/${quizData.length} correct - Review and try again!</p>
+            `;
+        }
+
+        gsap.from(resultSection, { opacity: 0, y: 20, duration: 0.5, ease: 'back.out(1.5)' });
+    }
+
+    function resetQuiz() {
+        sfxClick();
+        score = 0;
+        answered = 0;
+
+        document.getElementById('score').textContent = '0';
+        document.getElementById('result-section').classList.add('hidden');
+
+        // Reset cards
+        document.querySelectorAll('.quiz-card').forEach(card => {
+            card.classList.remove('answered');
+        });
+
+        // Reset buttons
+        document.querySelectorAll('.opt-btn').forEach(btn => {
+            btn.classList.remove('correct', 'wrong', 'disabled', 'pop', 'shake');
+        });
+
+        // Reset results
+        quizData.forEach((_, i) => {
+            document.getElementById(`result-${i}`).innerHTML = '';
+        });
+
+        // Reset dots
+        document.querySelectorAll('[data-dot]').forEach(dot => {
+            dot.classList.remove('bg-emerald-500', 'bg-rose-500');
+            dot.classList.add('bg-white/20');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        buildQuiz();
+
+        if (!window.gsap) {
+            document.querySelectorAll('.slide-header, .score-bar, .quiz-card').forEach(el => el.style.opacity = '1');
+            return;
+        }
+
+        gsap.set(['.slide-header', '.score-bar'], { opacity: 0, y: 20 });
+        const tl = gsap.timeline({ defaults: { ease: 'power4.out' } });
+        tl.to('.slide-header', { opacity: 1, y: 0, duration: 0.5 })
+          .to('.score-bar', { opacity: 1, y: 0, duration: 0.4 }, '-=0.3');
+
+        setTimeout(() => {
+            document.querySelectorAll('.quiz-card').forEach((el, i) => {
+                gsap.to(el, { opacity: 1, y: 0, duration: 0.4, delay: i * 0.1, ease: 'power4.out' });
+            });
+        }, 300);
+
+        window.resetSlide = () => {
+            resetQuiz();
+            gsap.set(['.slide-header', '.score-bar'], { clearProps: 'all', opacity: 0, y: 20 });
+            document.querySelectorAll('.quiz-card').forEach(el => { el.style.opacity = '0'; });
+            tl.restart();
+            setTimeout(() => {
+                document.querySelectorAll('.quiz-card').forEach((el, i) => {
+                    gsap.to(el, { opacity: 1, y: 0, duration: 0.4, delay: i * 0.1, ease: 'power4.out' });
+                });
+            }, 300);
+        };
+    });
+
+    window.stopSlideAudio = function () {};
+</script>
+</body>
+</html>
