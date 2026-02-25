@@ -72,23 +72,11 @@
             return systemTheme;
         }
 
-        function syncThemeToIframes(theme) {
-            const iframes = document.querySelectorAll('iframe');
-            iframes.forEach(iframe => {
-                try {
-                    if (iframe.contentWindow && typeof iframe.contentWindow.setTheme === 'function') {
-                        iframe.contentWindow.setTheme(theme);
-                    }
-                } catch(e) {}
-            });
-        }
-
         function toggleThemePreference() {
             const currentlyDark = document.documentElement.classList.contains('dark');
             const nextTheme = currentlyDark ? 'light' : 'dark';
             setStoredTheme(nextTheme);
             applyTheme(nextTheme);
-            syncThemeToIframes(nextTheme);
         }
 
         window.toggleThemePreference = toggleThemePreference;
@@ -604,7 +592,7 @@
                     <div class="slide">
                         <div class="w-full h-full flex items-center justify-center">
                             <!-- Iframe src will be set via JS -->
-                            <iframe src="" scrolling="yes" style="overflow: auto;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"></iframe>
+                            <iframe src="" scrolling="yes" style="overflow: auto;"></iframe>
 
                         </div>
                     </div>
@@ -680,7 +668,7 @@
     <div class="flex items-center justify-end gap-2 md:gap-4 flex-1">
             <span id="slide-index-footer"
                   class="text-[9px] md:text-[11px] font-black tracking-[0.1em] text-[var(--text-secondary)] bg-[var(--bg-body)] px-2.5 md:px-4 py-2 rounded-xl border border-[var(--border-ui)]">01
-                / 15
+                / 03</span>
         <button onclick="nextSlide()"
                 class="btn-action bg-brand text-white shadow-lg shadow-brand/20 hover:bg-brand-glow !px-3 md:!px-5">
             <span class="text-[10px] md:text-[11px] uppercase tracking-[0.1em] hidden sm:inline">Next Slide</span>
@@ -710,95 +698,62 @@
         {
             title: "Paying Bills",
             src: "chapter-0/slide-4.html",
-            cue: [
-                "Present the topic and discuss the idiom which means: Live in a way that matches what you can afford."
-            ]
+            cue: []
         },
         {
             title: "Listening & Comprehension",
             src: "chapter-0/slide-5.html",
-            cue: [
-                "Play the audio for the class and let students follow the transcript.",
-                "After all tracks, students take the True/False comprehension check."
-            ]
+            cue: []
         },
         {
             title: "What We Will Learn Today",
             src: "chapter-0/slide-6.html",
-            cue: [
-                "Read the objective only with no explanation."
-            ]
+            cue: []
         },
         {
             title: "Discussion Questions",
             src: "chapter-0/slide-7.html",
-            cue: [
-                "Elicit answers from the student."
-            ]
+            cue: []
         },
         {
             title: "Let's Watch This Video",
             src: "chapter-0/slide-8.html",
-            cue: [
-                "Introduce the video's topic. Play video first time in 'Watch Mode' only.",
-                "Play it once again in 'Quiz Mode' immediately after."
-            ]
+            cue: []
         },
         {
             title: "Reading Comprehension",
             src: "chapter-0/slide-9.html",
-            cue: [
-                "Let the student read the cable TV bill carefully.",
-                "Click 'Show Questions' and have the student fill in the answers."
-            ]
+            cue: []
         },
         {
             title: "Setting Up a Bank Account",
             src: "chapter-0/slide-10.html",
-            cue: [
-                "Prepare student to listen to a bank-related conversation about opening a new bank account.",
-                "Play the video and have students follow along with the script."
-            ]
+            cue: []
         },
         {
             title: "New Language",
             src: "chapter-0/slide-11.html",
-            cue: [
-                "Discuss new language phrases from the video.",
-                "Let the student click the sentences to practise reading them."
-            ]
+            cue: []
         },
         {
             title: "New Vocabulary",
             src: "chapter-0/slide-12.html",
-            cue: [
-                "Discuss new vocabulary (banking terms) from the video.",
-                "Let the student click each word to practise pronunciation."
-            ]
+            cue: []
         },
         {
             title: "Vocabulary Quiz",
             src: "chapter-0/slide-13.html",
-            cue: [
-                "Let the student complete the vocabulary quiz.",
-                "Check answers together and review any mistakes."
-            ]
+            cue: []
         },
         {
             title: "Fill-in Exercise",
             src: "chapter-0/slide-14.html",
-            cue: [
-                "This is a fill-in exercise to consolidate bank vocabulary.",
-                "Student clicks a word from the bank, then clicks the blank to fill it."
-            ]
+            cue: []
         },
         {
             title: "Wrap Up!",
             src: "chapter-0/slide-15.html",
-            cue: [
-                "This is the wrap-up slide to review key learnings.",
-                "Click each question to discuss answers with the student."
-            ]
+            cue: []
         }
     ];
     const PRELOAD_AHEAD_COUNT = 2;
@@ -806,12 +761,13 @@
         currentSlide: 0,
         zoom: 1.0,
         slides: [],
-        loadedSlides: new Set()
+        loadedSlides: new Set() // <--- NEW: Tracks loaded indices
     };
     window.state = state;
 
 
 
+    // --- RESPONSIVE SIDEBAR LOGIC ---
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const closeSidebarBtn = document.getElementById('close-sidebar-btn');
     const sidebarDrawer = document.getElementById('sidebar-drawer');
@@ -840,6 +796,10 @@
         if (data.action === 'prev') prevSlide();
     });
 
+    // --- TEACHER CUE HOVER ONLY ---
+    // Tooltip visibility is controlled via CSS (.group:hover .cue-tooltip)
+
+    // --- SLIDE LOGIC ---
     function init() {
         createSlides();
         createSidebar();
